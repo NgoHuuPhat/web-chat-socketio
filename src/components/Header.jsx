@@ -25,7 +25,7 @@
     },[])
 
     return (
-      <header className="fixed top-0 left-0 w-full z-10 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 text-white p-4 shadow-2xl backdrop-blur-xl border-b border-white/10">
+      <header className="fixed top-0 left-0 w-full z-10 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 text-white py-4 px-8 shadow-2xl backdrop-blur-xl border-b border-white/10">
         <div className="flex items-center justify-between">
           {/* Logo and title */}
           <div className="flex items-center space-x-3">
