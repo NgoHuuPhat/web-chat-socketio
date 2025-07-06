@@ -17,7 +17,7 @@ module.exports = async function authMiddleware(req, res, next) {
                     return res.status(401).json({ message: 'Refresh token not found' })
                 }
 
-                const response = await fetch('http://localhost:3000/api/user/refresh-token', {
+                const response = await fetch('http://localhost:3000/api/auth/refresh-token', {
                     method: 'GET',
                     credentials: 'include', 
                 })

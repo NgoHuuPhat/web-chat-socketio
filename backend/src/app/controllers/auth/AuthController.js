@@ -3,11 +3,11 @@ const Role = require('../../models/Role')
 var jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 
-class UserController {
-    //[POST] /api/user/register
+class AuthController {
+    //[POST] /api/auth/register
     async registerPost(req, res) {
         try {
-            // Default roleId is 'user'
+            // Default roleId is 'auth'
             const role = await Role.findOne({ name: 'user' })
 
             // Check email exists
@@ -30,16 +30,13 @@ class UserController {
             }
 
             await Account.create(newAccount)
-            res.status(201).json({
-                message: 'Account created successfully!',
-                account: newAccount,
-            })
+            res.status(201).json({ message: 'Account created successfully!' })
         } catch (error) {
             next(error)
         }
     }
 
-    //[POST] /api/user/login
+    //[POST] /api/auth/login
     async loginPost(req, res) {
         try {
             const { email, password } = req.body
@@ -99,8 +96,13 @@ class UserController {
 
             res.status(200).json({
                 message: 'Login successful!',
-                accessToken: accessToken,
-                refreshToken: refreshToken,
+                auth: {
+                    id: checkEmail._id,
+                    fullName: checkEmail.fullName,
+                    email: checkEmail.email,
+                    avatar: checkEmail.avatar,
+                    roleId: checkEmail.roleId,
+                },
             })
         } catch (error) {
             console.error('Login error:', error)
@@ -110,7 +112,7 @@ class UserController {
         }
     }
 
-    //[GET] /api/user/logout
+    //[GET] /api/auth/logout
     logout(req, res) {
         // Delete accessToken - refreshToken from cookie
         res.clearCookie('accessToken')
@@ -147,13 +149,14 @@ class UserController {
 
             res.json({ accessToken: newAccessToken })
         } catch (error) {
-            console.log('refreshToken không hợp lệ')
-            res.redirect('/user/login')
-            next(error)
+            console.error('Refresh token error:', error)
+            res.status(403).json({
+                message: 'Invalid refresh token. Please login again.',
+            })
         }
     }
 
 
 }
 
-module.exports = new UserController()
+module.exports = new AuthController()
