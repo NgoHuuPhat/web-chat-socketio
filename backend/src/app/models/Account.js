@@ -9,7 +9,8 @@ const AccountSchema = new Schema(
             type: String, 
             required: function() {
                 return this.loginType === 'local'
-            }
+            },
+            minlength: [6, 'Password must be at least 6 characters long'],
          },
         phone: { type: String },
         avatar: { type: String },

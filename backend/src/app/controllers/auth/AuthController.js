@@ -1,7 +1,9 @@
 const Account = require('../../models/Account')
+const ForgotPassword = require('../../models/ForgotPassword')
 const Role = require('../../models/Role')
-var jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
+const sendMailHelper = require('../../../services/sendMail')
 
 class AuthController {
     //[POST] /api/auth/register
@@ -123,7 +125,7 @@ class AuthController {
         })
     }
 
-    //[POST] /refresh-token
+    //[POST] /api/auth/refresh-token
     async refreshToken(req, res) {
         const token = req.cookies.refreshToken
         if (!token) {
@@ -156,7 +158,126 @@ class AuthController {
         }
     }
 
+    //[POST] /api/auth/forgot-password
+    async forgotPasswordPost(req, res, next) {
+        try {
+            const { email } = req.body
 
+            // Check email exists in database
+            const account = await Account.findOne({ email })
+            if (!account) {
+                return res.status(404).json({
+                    message: 'Email does not exist. Please register first.',
+                })
+            }
+
+            const otp = Math.floor(100000 + Math.random() * 900000) 
+            const forgotPassword = {
+                email,
+                otp
+            }
+            await ForgotPassword.create(forgotPassword)
+
+            // Send OTP to user's email
+            const subject = 'Xác thực OTP lấy lại mật khẩu'
+            const html = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px;">
+                    <h2 style="color: #007bff;">🔐 Xác thực OTP</h2>
+                    <p>Mã OTP của bạn là:</p>
+                    <h1 style="letter-spacing: 5px; font-size: 36px; color: #e74c3c; margin: 10px 0;">${otp}</h1>
+                    <p style="margin-top: 20px;">⏳ Mã sẽ hết hạn sau <b>3 phút</b>.</p>
+                    <hr style="margin: 20px 0;" />
+                    <p style="font-size: 12px; color: gray;">⚠️ Không chia sẻ mã với bất kỳ ai, kể cả nhân viên hỗ trợ.</p>
+                </div>
+            `
+            await sendMailHelper.sendMail(email, subject, html)
+
+            res.status(200).json({
+                message: 'OTP has been sent to your email. Please check your mailbox.',
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    //[POST] /api/auth/verify-otp
+    async verifyOTPPost(req, res, next) {
+        try {
+            const { email, otp } = req.body
+
+            // Check result in ForgotPassword collection
+            const result = await ForgotPassword.findOne({ email, otp })
+
+            if (!result) {
+                return res.status(400).json({
+                    message: 'OTP is invalid or expired. Please try again.',
+                })
+            }
+
+            await ForgotPassword.deleteMany({ email }) 
+
+            // Create reset token
+            const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, {
+                expiresIn: process.env.JWT_EXPIRE,
+            })
+            res.cookie('resetToken', resetToken, { httpOnly: true })
+
+            res.status(200).json({
+                message: 'OTP verified successfully! You can now reset your password.',
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    //[POST] /api/auth/reset-password
+    async resetPasswordrPost(req, res, next) {
+        try {
+            // Check resetToken in cookie
+            if (!req.cookies.resetToken) {
+                return res.status(401).json({
+                    message: 'Reset token is missing. Please request a new OTP.',
+                })
+            }
+
+            let decoded
+            try {
+                decoded = jwt.verify(req.cookies.resetToken, process.env.JWT_SECRET)
+            } catch (error) {
+                return res.status(403).json({
+                    message: 'Invalid reset token. Please request a new OTP.',
+                })
+            }
+            
+            const { password, confirmPassword } = req.body
+            if (password !== confirmPassword) {
+                return res.status(400).json({
+                    message: 'Passwords do not match. Please try again.',
+                })
+            }
+
+            if( password.length < 6) {
+                return res.status(400).json({
+                    message: 'Password must be at least 6 characters long.',
+                })
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10)
+            await Account.updateOne({ email: decoded.email }, 
+                { password: hashedPassword }
+            )
+
+            res.clearCookie('resetToken') 
+            res.status(200).json({
+                message: 'Password reset successfully! You can now login with your new password.',
+            })
+        } catch (error) {
+            res.status(500).json({
+                message: 'An error occurred while resetting the password. Please try again later.',
+            })
+            next(error)
+        }
+    }
 }
 
 module.exports = new AuthController()
