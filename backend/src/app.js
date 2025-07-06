@@ -3,9 +3,16 @@ const express = require('express')
 const app = express()
 const db = require('./config/db')
 const router = require('./routers/user/index')
+const cookieParser = require('cookie-parser')
 
 // Connect to DB
 db.connect()
+
+// Middleware cookie-parser
+app.use(cookieParser())
+
+// Middleware body-parser JSON
+app.use(express.json())
 
 // Router
 router(app)
