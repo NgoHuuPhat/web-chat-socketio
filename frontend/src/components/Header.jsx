@@ -1,7 +1,8 @@
   import { useState, useRef, useEffect } from 'react'
   import { Search, Bell, ChevronDown } from 'lucide-react'
   import logo from '@/assets/images/logo_chat.png'
-  import avatar from '@/assets/avatars/124_4x6.jpg' 
+  import avatar from '@/assets/avatars/124_4x6.jpg'
+  import { useNavigate } from 'react-router-dom'  
 
   const Header = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -9,6 +10,22 @@
 
     const toggleDropdown = () => {
       setDropdownOpen(!dropdownOpen)
+    }
+
+    const navigate = useNavigate()
+
+    const handleLogout = async () => {
+      try {
+        await fetch('http://localhost:3000/api/auth/logout', {
+          method: 'GET',
+          credentials: 'include', 
+        })
+
+        sessionStorage.removeItem('email')
+        navigate('/login')
+      } catch (error) {
+        console.error('Logout error:', error)
+      }
     }
 
     useEffect(() => {
@@ -62,7 +79,7 @@
                   <ul className="py-2">
                     <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">Trang cá nhân</li>
                     <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">Cài đặt</li>
-                    <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600">Đăng xuất</li>
+                    <li onClick={handleLogout} className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600">Đăng xuất</li>
                   </ul>
                 </div>
               )}
