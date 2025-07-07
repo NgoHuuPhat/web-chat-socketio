@@ -15,7 +15,7 @@ const AccountSchema = new Schema(
         phone: { type: String },
         avatar: { type: String },
         roleId: { type : mongoose.Schema.ObjectId, ref: 'Role', required: true }, 
-        status: { type: String, required: true },
+        status: { type: String, required: true, enum: ['active', 'inactive'], default: 'active' },
         loginType: { type: String, enum:['local','google','facebook'], required: true, default: 'local' },
     },
     { timestamps: true },

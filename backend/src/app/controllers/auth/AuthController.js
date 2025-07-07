@@ -15,8 +15,22 @@ class AuthController {
             // Check email exists
             const emailExists = await Account.findOne({ email: req.body.email })
             if (emailExists) {
-                res.status(400).json({
+                return res.status(400).json({
                     message: 'Email already exists. Please use a different email.',
+                })
+            }
+
+            // Check password length
+            if (req.body.password.length < 6) {
+                return res.status(400).json({
+                    message: 'Password must be at least 6 characters long.',
+                })
+            }
+
+            // Check confirm password
+            if (req.body.password !== req.body.confirmPassword) {
+                return res.status(400).json({
+                    message: 'Passwords do not match. Please try again.',
                 })
             }
 
@@ -34,13 +48,17 @@ class AuthController {
             await Account.create(newAccount)
             res.status(201).json({ message: 'Account created successfully!' })
         } catch (error) {
-            next(error)
+            console.error('Registration error:', error)
+            res.status(500).json({
+                message: 'An error occurred during registration. Please try again later.',
+            })
         }
     }
 
     //[POST] /api/auth/login
     async loginPost(req, res) {
         try {
+
             const { email, password } = req.body
             const checkEmail = await Account.findOne({ email: email })
 
@@ -92,9 +110,11 @@ class AuthController {
                 },
             )
 
-            // Save accessToken - refreshToken to cookie
+            // Set cookies
             res.cookie('accessToken', accessToken, { httpOnly: true })
             res.cookie('refreshToken', refreshToken, { httpOnly: true })
+
+            const role = await Role.findById(checkEmail.roleId).select('name')
 
             res.status(200).json({
                 message: 'Login successful!',
@@ -104,6 +124,7 @@ class AuthController {
                     email: checkEmail.email,
                     avatar: checkEmail.avatar,
                     roleId: checkEmail.roleId,
+                    roleName: role.name,
                 },
             })
         } catch (error) {
@@ -159,7 +180,7 @@ class AuthController {
     }
 
     //[POST] /api/auth/forgot-password
-    async forgotPasswordPost(req, res, next) {
+    async forgotPasswordPost(req, res) {
         try {
             const { email } = req.body
 
@@ -196,12 +217,15 @@ class AuthController {
                 message: 'OTP has been sent to your email. Please check your mailbox.',
             })
         } catch (error) {
-            next(error)
+            console.error('Forgot password error:', error)
+            res.status(500).json({
+                message: 'An error occurred while processing your request. Please try again later.',
+            })
         }
     }
 
     //[POST] /api/auth/verify-otp
-    async verifyOTPPost(req, res, next) {
+    async verifyOTPPost(req, res) {
         try {
             const { email, otp } = req.body
 
@@ -226,12 +250,15 @@ class AuthController {
                 message: 'OTP verified successfully! You can now reset your password.',
             })
         } catch (error) {
-            next(error)
+            console.error('Verify OTP error:', error)
+            res.status(500).json({
+                message: 'An error occurred while verifying the OTP. Please try again later.',
+            })
         }
     }
 
     //[POST] /api/auth/reset-password
-    async resetPasswordrPost(req, res, next) {
+    async resetPasswordrPost(req, res) {
         try {
             // Check resetToken in cookie
             if (!req.cookies.resetToken) {
@@ -275,8 +302,35 @@ class AuthController {
             res.status(500).json({
                 message: 'An error occurred while resetting the password. Please try again later.',
             })
-            next(error)
+            console.error('Reset password error:', error)
+
         }
+    }
+
+    //[GET] /api/auth/check-auth
+    async checkAuth(req, res) {
+       try {
+            const user = await Account.findById(req.user.id).populate('roleId', 'name')
+            if (!user) {
+                return res.status(404).json({
+                    message: 'User not found. Please login again.',
+                })
+            }
+
+            res.status(200).json({
+                id: user._id,
+                roleName: user.roleId.name,
+                fullName: user.fullName,
+                email: user.email,
+                avatar: user.avatar,
+                roleId: user.roleId._id,
+            })
+       } catch (error) {
+            console.error('Check auth error:', error)
+            res.status(500).json({
+                message: 'An error occurred while checking authentication. Please try again later.',
+            })
+       }
     }
 }
 

@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import bgImage from '@/assets/images/bg_gradient.jpg' 
 import logo from '@/assets/images/logo_chat.png'
 import { useNavigate } from 'react-router-dom'
+import validator from 'validator'
 
 const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -14,6 +15,21 @@ const RegisterForm = () => {
     password: '',
     confirmPassword: ''
   })
+  const [error, setError] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  })
+  const [touched, setTouched] = useState({
+    fullName: false,
+    email: false,
+    password: false,
+    confirmPassword: false
+  })
+  const [serverError, setServerError] = useState('')
+  const [loading, setLoading] = useState(false)
+
   const navigate = useNavigate()
 
   const togglePasswordVisibility = () => {
@@ -31,19 +47,90 @@ const RegisterForm = () => {
       [name]: value
     }))
   }
-
-  const handleSubmit = (e) => {
+ 
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!')
+    setServerError('')
+
+    // Check if all fields are valid
+    const hasError = Object.values(error).some(err => err !== '')
+    if( hasError ) {
+      setServerError('Please fix the errors before submitting.')
       return
     }
-    if (!agreeTerms) {
-      alert('Please agree to the terms and conditions!')
-      return
+    setLoading(true)
+
+    try {
+        const response = await fetch('http://localhost:3000/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            confirmPassword: formData.confirmPassword
+          }),
+        })
+        
+        const data = await response.json()
+        if(!response.ok) {
+          setLoading(false)
+          setServerError(data.message || 'Registration failed. Please try again.')
+          return
+        }
+
+        setTimeout(() => {
+          setLoading(false)
+          navigate('/login')
+        }, 500)
+
+    } catch (error) {
+      setLoading(false)
+      console.error('Registration error:', error)
+      setServerError('An error occurred during registration. Please try again later.')
     }
-    console.log('Register attempt:', { ...formData, agreeTerms })
   }
+
+  useEffect(() => {
+    setServerError('')
+    
+    // Full Name validation
+    if (formData.fullName === '') {
+      setError((prev) => ({ ...prev, fullName: 'Fullname is required' }))
+    } else {
+      setError((prev) => ({ ...prev, fullName: '' })) 
+    }
+
+    // Email validation
+    if (formData.email === '') {
+      setError((prev) => ({ ...prev, email: 'Email is required' }))
+    } else if (!validator.isEmail(formData.email)) {
+      setError((prev) => ({ ...prev, email: 'Invalid email format' }))
+    } else {
+      setError((prev) => ({ ...prev, email: '' }))
+    }
+
+    // Password validation
+    if (formData.password === '') {
+      setError((prev) => ({ ...prev, password: 'Password is required' }))
+    } else if (formData.password.length < 6) {
+      setError((prev) => ({ ...prev, password: 'Password must be at least 6 characters' }))
+    } else {
+      setError((prev) => ({ ...prev, password: '' })) 
+    }
+
+    // Confirm Password validation
+    if (formData.confirmPassword === '') {
+      setError((prev) => ({ ...prev, confirmPassword: 'Confirm Password is required' }))
+    } else if (formData.confirmPassword !== formData.password) {
+      setError((prev) => ({ ...prev, confirmPassword: 'Passwords do not match' }))
+    } else {
+      setError((prev) => ({ ...prev, confirmPassword: '' }))
+    }
+  }, [formData])
+  
 
   return (
     <div className="min-h-screen h-full w-full flex flex-col bg-cover bg-center items-center justify-center p-0 m-0 overflow-hidden" style={{ backgroundImage: `url(${bgImage})` }}>
@@ -87,11 +174,15 @@ const RegisterForm = () => {
                 type="text"
                 name="fullName"
                 value={formData.fullName}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  handleInputChange(e)
+                  setTouched((prev) => ({ ...prev, fullName: true }))
+                }}
                 placeholder="Enter your full name"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 required
               />
+              {touched.fullName && error.fullName && <p className="text-red-500 text-sm mt-1">{error.fullName}</p>}
             </div>
 
             {/* Email field */}
@@ -101,11 +192,15 @@ const RegisterForm = () => {
                 type="email"
                 name="email"
                 value={formData.email}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  handleInputChange(e)
+                  setTouched((prev) => ({ ...prev, email: true }))
+                }}
                 placeholder="Enter your email"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 required
               />
+              {touched.email && error.email && <p className="text-red-500 text-sm mt-1">{error.email}</p>}
             </div>
 
             {/* Password field */}
@@ -116,7 +211,10 @@ const RegisterForm = () => {
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e)
+                    setTouched((prev) => ({ ...prev, password: true }))
+                  }}
                   placeholder="Create a password"
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   required
@@ -128,6 +226,7 @@ const RegisterForm = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </div>
               </div>
+              {touched.password && error.password && <p className="text-red-500 text-sm mt-1">{error.password}</p>}
             </div>
 
             {/* Confirm Password field */}
@@ -138,7 +237,10 @@ const RegisterForm = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   name="confirmPassword"
                   value={formData.confirmPassword}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e)
+                    setTouched((prev) => ({ ...prev, confirmPassword: true }))
+                  }}
                   placeholder="Confirm your password"
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   required
@@ -150,6 +252,7 @@ const RegisterForm = () => {
                   {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </div>
               </div>
+              {touched.confirmPassword && error.confirmPassword && <p className="text-red-500 text-sm mt-1">{error.confirmPassword}</p>}
             </div>
 
             {/* Terms and conditions */}
@@ -176,10 +279,18 @@ const RegisterForm = () => {
             {/* Sign up button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-200 shadow-lg"
+              className="w-full bg-gradient-to-r cursor-pointer from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-200 shadow-lg"
             >
-              Create Account
+              Sign up
             </button>
+          </form>
+          <div className="mt-4 space-y-3">
+            {/* Server error message */}
+            {serverError && (
+              <div className="text-red-500 text-sm text-center mt-2">
+                {serverError}
+              </div>
+            )}
 
             {/* Google sign up */}
             <div className="relative">
@@ -214,7 +325,13 @@ const RegisterForm = () => {
                 Sign in
               </span>
             </p>
-          </form>
+            {/* Loading spinner */}
+            {loading && (
+              <div className="flex justify-center items-center mt-4">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

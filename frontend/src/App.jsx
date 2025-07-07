@@ -2,7 +2,7 @@ import './App.css'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Chat from './pages/Chat.jsx'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 
 // Main App Component
 const App = () => {
