@@ -19,7 +19,9 @@ module.exports = async function authMiddleware(req, res, next) {
 
                 const response = await fetch('http://localhost:3000/api/auth/refresh-token', {
                     method: 'GET',
-                    credentials: 'include', 
+                    headers: {
+                        Cookie: `refreshToken=${refreshToken}`,
+                    }
                 })
 
                 if (!response.ok) {
