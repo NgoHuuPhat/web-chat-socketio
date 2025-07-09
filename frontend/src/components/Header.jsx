@@ -3,6 +3,7 @@
   import logo from '@/assets/images/logo_chat.png'
   import avatar from '@/assets/avatars/124_4x6.jpg'
   import { useNavigate } from 'react-router-dom'  
+  import { useAuth } from '@/context/AuthContext'
 
   const Header = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -11,6 +12,7 @@
     const toggleDropdown = () => {
       setDropdownOpen(!dropdownOpen)
     }
+    const { setUser } = useAuth()
 
     const navigate = useNavigate()
 
@@ -21,8 +23,10 @@
           credentials: 'include', 
         })
 
+        setUser(null) 
         sessionStorage.removeItem('email')
         navigate('/login')
+
       } catch (error) {
         console.error('Logout error:', error)
       }

@@ -5,6 +5,7 @@ import logo from '@/assets/images/logo_chat.png'
 import { useNavigate } from 'react-router-dom'
 import validator from 'validator'
 import { useEffect } from 'react'
+import { useAuth } from '@/context/AuthContext'
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -21,6 +22,8 @@ const LoginForm = () => {
     password: false,
   })
   const [loading, setLoading] = useState(false)
+
+  const { setUser } = useAuth()
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
@@ -55,13 +58,9 @@ const LoginForm = () => {
       }
 
       setTimeout(() => {
+        setUser(data.auth)
         setLoading(false)
-        if(data.auth.roleName === 'user') {
-          navigate('/')
-        } else {
-          navigate('/admin')
-        }
-      },500)
+      }, 1000)
 
     } catch (error) {
       setLoading(false)
@@ -69,31 +68,6 @@ const LoginForm = () => {
       setServerError('An error occurred while logging in. Please try again later.')
     } 
   }
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('http://localhost:3000/api/auth/check-auth', {
-          method: 'GET',
-          credentials: 'include', 
-        })
-        if (!response.ok) {
-          throw new Error('Not authenticated')
-        }
-        const data = await response.json()
-        if(data.roleName == 'user') {
-          navigate('/')
-        } else {
-          navigate('/admin')
-        }
-      }
-      catch (error) {
-        console.error('Authentication check failed:', error)
-        navigate('/login')
-      }
-    }
-    checkAuth()
-  }, [])
 
   useEffect(() => {
     if (email === '') {
@@ -148,7 +122,7 @@ const LoginForm = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email field */}
-            <div>
+            <div className='mb-1'>
               <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
               <input
                 type="email"
@@ -161,11 +135,13 @@ const LoginForm = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 required
               />
-              {touched.email && error.email && <p className="text-red-500 text-sm mt-1">{error.email}</p>}
+              <p className={`text-sm mt-2 min-h-[1.25rem] ${touched.email && error.email ? 'text-red-500' : 'text-transparent'}`}>
+                {error.email}
+              </p>
             </div>
 
             {/* Password field */}
-            <div>
+            <div className='mb-1'>
               <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
               <div className="relative">
                 <input
@@ -186,7 +162,9 @@ const LoginForm = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </div>
               </div>
-              {touched.password && error.password && <p className="text-red-500 text-sm mt-1">{error.password}</p>}
+              <p className={`text-sm mt-2 min-h-[1.25rem] ${touched.password && error.password ? 'text-red-500' : 'text-transparent'}`}>
+                {error.password}
+              </p>
             </div>
 
             {/* Remember me and forgot password */}
@@ -255,7 +233,7 @@ const LoginForm = () => {
 
             {/* Loading spinner */}
             {loading && (
-              <div className="flex justify-center items-center mt-4">
+              <div className="flex justify-center items-center">
                 <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
