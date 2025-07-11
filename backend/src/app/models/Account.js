@@ -21,4 +21,4 @@ const AccountSchema = new Schema(
     { timestamps: true },
 )
 
-module.exports = mongoose.model('Account', AccountSchema) // Collection - Schema
+module.exports = mongoose.model('Account', AccountSchema)

@@ -10,4 +10,4 @@ const ForgotPasswordSchema = new Schema(
     { timestamps: true },
 )
 
-module.exports = mongoose.model('ForgotPassword', ForgotPasswordSchema) // Collection - Schema
+module.exports = mongoose.model('ForgotPassword', ForgotPasswordSchema)
