@@ -1,49 +1,38 @@
 import Header from '../components/Header'
 import Sidebar from '../components/Sidebar'
 import ChatWindow from '../components/ChatWindow'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const Chat = () => {
   const [selectedUser, setSelectedUser] = useState(null)
   const [messages, setMessages] = useState([])
-  
-  const users = [
-    {
-      name: 'Alice Johnson',
-      lastMessage: 'Hey, how are you doing?',
-      online: true,
-      unread: 2,
-      color: 'bg-gradient-to-r from-purple-500 to-pink-500'
-    },
-    {
-      name: 'Bob Smith',
-      lastMessage: 'See you tomorrow!',
-      online: false,
-      unread: 0,
-      color: 'bg-gradient-to-r from-blue-500 to-cyan-500'
-    },
-    {
-      name: 'Carol Davis',
-      lastMessage: 'Thanks for the help!',
-      online: true,
-      unread: 1,
-      color: 'bg-gradient-to-r from-green-500 to-emerald-500'
-    },
-    {
-      name: 'David Wilson',
-      lastMessage: 'Let\'s catch up soon',
-      online: false,
-      unread: 0,
-      color: 'bg-gradient-to-r from-orange-500 to-red-500'
-    },
-    {
-      name: 'Eva Brown',
-      lastMessage: 'Great job on the project!',
-      online: true,
-      unread: 3,
-      color: 'bg-gradient-to-r from-pink-500 to-rose-500'
+  const [users, setUsers] = useState([])
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+          const res = await fetch('http://localhost:3000/api/users', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', 
+          })
+
+          const data = await res.json()
+          console.log('Fetched users:', data)
+          if (res.ok) {
+            setUsers(data)
+          } else {
+            console.error('Failed to fetch users:', data.message)
+          }
+      } catch (error) {
+        console.error('Error fetching users:', error)
+      }
     }
-  ]
+
+    fetchUsers()
+  }, [])
 
   const sampleMessages = [
     { sender: 'Alice Johnson', text: 'Hey there! How\'s your day going?', time: '10:30 AM' },
@@ -57,7 +46,7 @@ const Chat = () => {
     setSelectedUser(user)
     setMessages(sampleMessages.map(msg => ({
       ...msg,
-      sender: msg.sender === 'Alice Johnson' ? user.name : msg.sender
+      sender: msg.sender === 'Alice Johnson' ? user.fullName : msg.sender
     })))
   }
 
