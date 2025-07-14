@@ -4,7 +4,7 @@ const Schema = mongoose.Schema
 const MessageSchema = new Schema(
     {
         conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true },
-        senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        senderId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
         content: { type: String, default: '' },
         attachments: [
             {
