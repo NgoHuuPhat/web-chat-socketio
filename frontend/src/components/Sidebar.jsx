@@ -1,36 +1,35 @@
 import  { useEffect, useState }  from 'react'
 import { Plus, Search, Users } from 'lucide-react'
 
-const Sidebar = ({ users, selectedUser, onSelectUser }) => {
+const Sidebar = ({ users, selectedConversation, conversations, currentUserId, onSelectConversation }) => {
   const [searchItem, setSearchItem] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [filteredUsers, setFilteredUsers] = useState(users)
+  const [filteredConversations, setFilteredConversations] = useState(conversations)
 
   const [searchItemModal, setSearchItemModal] = useState('')
   const [modalUsers, setModalUsers] = useState(users)
-  
+
+  // Handle filtering conversations when searchItem changest
   useEffect(() => {
     const delay = setTimeout(() => {
         const fetchSearchResults = async () => {
             try {
                 const query = searchItem.trim()
-                
                 if (!query) {
-                    setFilteredUsers(users)
+                    setFilteredConversations(conversations)
                     return
                 }
 
-                const res = await fetch(`http://localhost:3000/api/users/search?q=${encodeURIComponent(query)}`, {
+                const res = await fetch(`http://localhost:3000/api/conversations/search?q=${encodeURIComponent(query)}`, {
                     method: 'GET',
                     headers: {
                     'Content-Type': 'application/json',
-                },
+                    },
                     credentials: 'include', 
                 })
-
                 const data = await res.json()
                 if (res.ok) {
-                    setFilteredUsers(data)
+                    setFilteredConversations(data)
                 } else {
                     console.error('Failed to fetch users:', data.message)
                 }
@@ -40,18 +39,17 @@ const Sidebar = ({ users, selectedUser, onSelectUser }) => {
         }
 
         fetchSearchResults()
-    }, 300)
+    }, 100)
 
-    // Cancel previous timeout on searchItem change or component unmount
     return () => clearTimeout(delay)
-  }, [users, searchItem])
+  }, [conversations, searchItem])
 
+  // Handle filtering users inside modal
   useEffect(() => {
     const delay = setTimeout(() => {
         const fetchSearchResults = async () => {
             try {
                 const query = searchItemModal.trim()
-                
                 if (!query) {
                     setModalUsers(users)
                     return
@@ -77,9 +75,8 @@ const Sidebar = ({ users, selectedUser, onSelectUser }) => {
         }
 
         fetchSearchResults()
-    }, 300)
+    }, 100)
 
-    // Cancel previous timeout on searchItem change or component unmount
     return () => clearTimeout(delay)
   }, [users, searchItemModal])
 
@@ -94,7 +91,7 @@ const Sidebar = ({ users, selectedUser, onSelectUser }) => {
                 </h2>
                 <div className="flex items-center space-x-2">
                     <span className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 text-xs px-3 py-1 rounded-full font-medium">
-                    {users.length}
+                    {conversations.length}
                     </span>
                     <button 
                         className="p-2 hover:bg-purple-100 rounded-xl transition-all duration-200 hover:scale-105"
@@ -115,50 +112,88 @@ const Sidebar = ({ users, selectedUser, onSelectUser }) => {
                 />
                 </div>
             </div>
+
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <ul className="p-4 space-y-2">
-                {filteredUsers.map((user, index) => (
-                    <li
-                    key={index}
-                    className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
-                        selectedUser?.fullName === user.fullName
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25'
-                        : 'hover:bg-slate-100/80 hover:shadow-md'
-                    }`}
-                    onClick={() => onSelectUser(user)}
-                    >
-                    <div className='flex items-center space-x-3'>
-                        <div className="relative">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-semibold text-lg shadow-lg ${
-                            selectedUser?.fullName === user.fullName ? 'bg-white/20' : user.color
-                        }`}>
-                            {user.fullName[0]}
-                        </div>
-                        {user.online && (
-                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
-                        )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                        <p className={`font-semibold truncate ${selectedUser?.fullName === user.fullName ? 'text-white' : 'text-slate-900'}`}>
-                            {user.fullName}
-                        </p>
-                        <p className={`text-sm truncate ${selectedUser?.fullName === user.fullName ? 'text-white/80' : 'text-slate-500'}`}>
-                            {user.lastMessage}
-                        </p>
-                        </div>
-                        {user.unread > 0 && (
-                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg animate-bounce">
-                            {user.unread}
-                        </span>
-                        )}
-                    </div>
-                    </li>
-                ))}
+                    {filteredConversations.map((conversation, index) => {
+                        const isSelected = selectedConversation && selectedConversation._id === conversation._id
+                        const isGroup = conversation.isGroup === true
+
+                        let displayName = 'Unknown'
+                        let displayInitial = '?'
+                        let isOnline = false
+
+                        if (isGroup) {
+                            displayName = conversation.groupName || 'Unnamed Group'
+                        } else {
+                            const partner = conversation.members.find(member => member._id !== currentUserId)
+                            if (partner) {
+                                displayName = partner.fullName
+                                isOnline = partner.online
+                            }
+                        }
+
+                        if (displayName && displayName.length > 0) {
+                            displayInitial = displayName[0].toUpperCase()
+                        }
+
+                        // Dynamic classes for styling
+                        let containerClass = 'p-4 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-[1.02] '
+                        if (isSelected) {
+                            containerClass += 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25'
+                        } else {
+                            containerClass += 'hover:bg-slate-100/80 hover:shadow-md'
+                        }
+
+                        let avatarClass = 'w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg '
+                        if (isSelected) {
+                            avatarClass += 'bg-white/20'
+                        } else {
+                            avatarClass += 'bg-gradient-to-r from-indigo-500 to-purple-500'
+                        }
+
+                        let nameClass = 'font-semibold truncate '
+                        nameClass += isSelected ? 'text-white' : 'text-slate-900'
+
+                        let messageClass = 'text-sm truncate '
+                        messageClass += isSelected ? 'text-white/80' : 'text-slate-500'
+
+                        return (
+                            <li key={index} className={containerClass} onClick={() => onSelectConversation(conversation)}>
+                            <div className="flex items-center space-x-3">
+                                {/* Avatar */}
+                                <div className="relative">
+                                <div className={avatarClass}>
+                                    {displayInitial}
+                                </div>
+                                {isOnline && (
+                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
+                                )}
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                <p className={nameClass}>{displayName}</p>
+                                <p className={messageClass}>
+                                    {conversation.lastMessage?.content || ''}
+                                </p>
+                                </div>
+
+                                {/* Badge messages unread */}
+                                {conversation.unread > 0 && (
+                                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg animate-bounce">
+                                    {conversation.unread}
+                                </span>
+                                )}
+                            </div>
+                            </li>
+                        )
+                    })}
                 </ul>
             </div>
         </aside>
 
-         {/* Model add user */}
+        {/* Model add user */}
         {showModal && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[105vh] overflow-hidden">
@@ -212,13 +247,28 @@ const Sidebar = ({ users, selectedUser, onSelectUser }) => {
                             key={user._id}
                             className="group p-4 bg-slate-50 rounded-2xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 hover:shadow-md cursor-pointer transition-all duration-200 border border-transparent hover:border-purple-200"
                             onClick={() => {
-                            onSelectUser({
-                                ...user,
-                                lastMessage: 'New user added',
-                                unread: 0,
-                                online: true,
-                                color: 'bg-gradient-to-r from-indigo-500 to-purple-500'
+                            // Check if user is already in conversation
+                            const existingConversation = conversations.find(conversation =>{
+                                if(!conversation.isGroup){
+                                    return conversation.members.some(member => member._id === user._id)
+                                }
                             })
+                            
+                            if(existingConversation) {
+                                onSelectConversation(existingConversation)
+                            } else {
+                                onSelectConversation({
+                                    _id: null,
+                                    isGroup: false,
+                                    members: [
+                                    { _id: currentUserId },
+                                    user
+                                    ],
+                                    lastMessage: null,
+                                    unread: 0,
+                                })
+                            }
+
                             setShowModal(false)
                             setSearchItemModal('')
                             }}

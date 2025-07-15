@@ -15,9 +15,12 @@ const App = () => {
     <Routes>
       <Route path="/login"  element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
       <Route path="/register" element={<Register />} />    
+      
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-otp" element={<VerifyOTP />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      <Route path="/messages/:conversationId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
       <Route path="/" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
     </Routes>
   )
