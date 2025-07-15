@@ -109,6 +109,9 @@ const Chat = () => {
         console.error('Conversation not found:', conversationId)
         navigate('/')
       }
+    // If no conversation is selected, select the first one
+    } else if(!selectedConversation && conversations.length > 0) {
+      handleSelectConversation(conversations[0])
     }
   }, [conversationId, conversations])
 
