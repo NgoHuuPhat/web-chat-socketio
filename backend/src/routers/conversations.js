@@ -4,6 +4,7 @@ const conversationController = require('../app/controllers/user/ConversationCont
 
 router.get('/search', conversationController.searchConversations)
 router.get('/', conversationController.getAllConversations)
+router.post('/group', conversationController.createGroupConversation)
 // router.delete('/:id', messageController.deleteMessage)
 // router.patch('/:id', messageController.updateMessage)
 

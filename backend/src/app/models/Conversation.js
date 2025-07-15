@@ -5,7 +5,7 @@ const ConversationSchema = new Schema(
     {
         isGroup: { type: Boolean, default: false }, 
         groupName: { type: String, default: null },
-        groupImage: { type: String, default: null },
+        groupAvatar: { type: String, default: null },
         members: [{ type: Schema.Types.ObjectId, ref: 'Account', required: true }],
         createdBy: { type: Schema.Types.ObjectId, ref: 'Account', default: null },
         lastMessage: { type: Schema.Types.ObjectId, ref: 'Message', default: null },

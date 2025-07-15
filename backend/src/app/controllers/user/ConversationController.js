@@ -12,6 +12,7 @@ class ConversationController {
             })
             .populate('members', 'fullName avatar')
             .populate('lastMessage')
+            .sort({ lastMessageTime: -1 }) 
 
             if (!conversations || conversations.length === 0) {
                 return res.status(404).json({ message: 'No conversations found.' });
@@ -54,6 +55,32 @@ class ConversationController {
             res.status(200).json(filteredConversations)
         } catch (error) {
             
+        }
+    }
+
+    // [POST] /api/conversations/group
+    async createGroupConversation(req, res) {
+        try {
+            const { groupName, members, groupAvatar } = req.body
+            const userId = req.user.id
+
+            if (!groupName || !members || members.length === 0) {
+                return res.status(400).json({ message: 'Name and members are required.' })
+            }
+            
+            const conversation = await Conversation.create({
+                isGroup: true,
+                groupName,
+                groupAvatar,
+                createdBy: userId,
+                members: [userId, ...members],
+            })
+            
+            res.status(201).json(conversation)
+
+        } catch (error) {
+            console.error('Error creating conversation:', error)
+            res.status(500).json({ message: 'Internal server error' })
         }
     }
 }
