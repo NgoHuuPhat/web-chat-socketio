@@ -85,8 +85,10 @@ const Chat = () => {
         const data = await res.json()
         if(res.ok) {
           const formattedMessages = data.map(message => ({
+            _id: message._id,
             sender: message.senderId,
             text: message.content,
+            deleted: message.deleted,
             time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }))
           
@@ -147,6 +149,7 @@ const Chat = () => {
         const data = await res.json()
         if (res.ok) {
           const newMessage = {
+            _id: data.data._id,
             sender: user.id,
             text: data.data.content,
             time: new Date(data.data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -159,6 +162,14 @@ const Chat = () => {
     } catch (error) {
       console.error('Error sending message:', error)
     }
+  }
+
+  const handleDeleteMessage = async (messageId) => {
+    setMessages(prevMessages => 
+      prevMessages.map(msg => 
+        msg._id === messageId ? { ...msg, deleted: true } : msg
+      )
+    )
   }
 
   return (
@@ -177,6 +188,7 @@ const Chat = () => {
           messages={messages} 
           currentUserId={user.id}
           onSendMessage={handleSendMessage} 
+          onDeleteMessage={handleDeleteMessage}
         />
       </div>
     </div>
