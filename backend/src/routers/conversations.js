@@ -3,8 +3,11 @@ const router = express.Router()
 const conversationController = require('../app/controllers/user/ConversationController')
 
 router.get('/search', conversationController.searchConversations)
-router.get('/', conversationController.getAllConversations)
 router.post('/group', conversationController.createGroupConversation)
+router.patch('/:conversationId/pin', conversationController.pinMessage)
+router.patch('/:conversationId/unpin', conversationController.unpinMessage)
+router.get('/:conversationId/pinned', conversationController.getPinnedMessages)
+router.get('/', conversationController.getAllConversations)
 // router.delete('/:id', messageController.deleteMessage)
 // router.patch('/:id', messageController.updateMessage)
 

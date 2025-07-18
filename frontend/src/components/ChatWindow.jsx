@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Mic, Video, Smile, Paperclip, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2 } from 'lucide-react'
+import { Send, Mic, Video, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2 } from 'lucide-react'
 
-const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessage, onDeleteMessage }) => {
+const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessage, onDeleteMessage, pinnedMessages, onPinMessage, onUnpinMessage }) => {
   const [newMessage, setNewMessage] = useState('')
   const [activeMessageMenu, setActiveMessageMenu] = useState(null)
+  const [showAllPinned, setshowAllPinned] = useState(false)
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -21,51 +22,9 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
     return () => document.removeEventListener('click', handleClickOutside)
   }, [activeMessageMenu])
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return
-    onSendMessage(newMessage)
-    setNewMessage('')
-  }
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') handleSendMessage()
-  }
-
   const handleMessageMenuClick = (index, event) => {
     event.stopPropagation()
     setActiveMessageMenu(activeMessageMenu === index ? null : index)
-  }
-
-  const handleDeleteMessage = async (msgId) => {
-    try {
-      const res = await fetch(`http://localhost:3000/api/messages/${msgId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      })
-
-      const data = await res.json()
-
-      if (res.ok) {
-        onDeleteMessage(msgId)
-        console.log('Message deleted successfully:', data)
-      } else {
-        console.error('Failed to delete message:', data.message)
-      }
-    
-      setActiveMessageMenu(null) 
-    } catch (error) {
-      console.error('Error deleting message:', error)
-      setActiveMessageMenu(null) 
-    }
-  }
-
-  const handlePinMessage = (index) => {
-    // Implement pin message logic here
-    console.log('Pin message at index:', index)
-    setActiveMessageMenu(null)
   }
 
   if (!selectedConversation) {
@@ -118,10 +77,63 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
         </div>
       </div>
 
+      {/* Pinned Messages */}
+      {pinnedMessages && pinnedMessages.length > 0 && (
+        <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 py-2 m-2 shadow-sm rounded-md">
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-2">
+            <MessageSquareText className="h-5 w-5 text-purple-600 flex-shrink-0" />
+            <h4 className="text-sm font-semibold text-slate-700">Pinned Messages</h4>
+          </div>
+
+          {/* List Messages Pinned */}
+          {(showAllPinned ? pinnedMessages : pinnedMessages.slice(0, 1)).map((msg, index) => (
+            <div
+              key={index}
+              id={`pinned-message-${msg._id}`}
+              onClick={() => {
+                const el = document.getElementById(`message-${msg._id}`)
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  el.classList.add('bg-purple-100')
+                  setTimeout(() => el.classList.remove('bg-purple-100'), 1000)
+                }
+              }}
+              className="group bg-purple-50 px-3 py-2 rounded-md shadow-sm mb-1 last:mb-0 cursor-pointer hover:bg-purple-100 transition flex justify-between items-center"
+            >
+              <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                <span className="font-medium">{msg.senderName}</span>: {msg.text}
+              </p>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onUnpinMessage(msg._id)
+                  setActiveMessageMenu?.(null)
+                }}
+                className="text-xs text-slate-500 cursor-pointer hover:text-red-600 ml-2"
+              >
+                Unpin
+              </button>
+            </div>
+          ))}
+
+          {/* Toggle */}
+          {pinnedMessages.length > 1 && (
+            <button
+              onClick={() => setshowAllPinned(!showAllPinned)}
+              className="text-sm text-purple-600 cursor-pointer mt-1"
+            >
+              {showAllPinned ? 'Show less' : `Show ${pinnedMessages.length - 1} more`}
+            </button>
+          )}
+        </div>
+      )}
+
+
       {/* Messages */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.sender === currentUserId ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
+          <div key={i} id={`message-${msg._id}`} className={`flex ${msg.sender === currentUserId ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
             <div className="relative">
               <div className={`max-w-xs lg:max-w-md px-6 py-4 rounded-3xl shadow-lg transition-all duration-300 hover:scale-105 ${
                 msg.deleted
@@ -141,29 +153,53 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
               </div>
               
               {/* Message Menu Button */}
-              <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
-                <button
-                  onClick={(e) => handleMessageMenuClick(i, e)}
-                  className="p-2 hover:bg-slate-200 rounded-full transition-colors message-menu"
-                >
-                  <MoreVertical className="h-4 w-4 text-slate-600" />
-                </button>
-              </div>
+              {!msg.deleted && (
+                <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
+                  <button
+                    onClick={(e) => handleMessageMenuClick(i, e)}
+                    className="p-2 hover:bg-slate-200 rounded-full transition-colors message-menu"
+                  >
+                    <MoreVertical className="h-4 w-4 text-slate-600" />
+                  </button>
+                </div>
+              )}
 
               {/* Dropdown Menu */}
               {activeMessageMenu === i && (
                 <div className={`absolute bottom-full mb-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200/50 py-2 message-menu z-50 ${
                   msg.sender === currentUserId ? 'right-0' : 'left-0'
                 }`}>
+
+                  {/* Pin or Unpin conditional */}
+                  {pinnedMessages.some(p => p._id === msg._id) ? (
+                    <button
+                      onClick={() => {
+                        onUnpinMessage(msg._id)
+                        setActiveMessageMenu(null)
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center space-x-3 transition-colors"
+                    >
+                      <Pin className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm text-purple-700">Unpin message</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        onPinMessage(msg._id)
+                        setActiveMessageMenu(null)
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center space-x-3 transition-colors"
+                    >
+                      <Pin className="h-4 w-4 text-slate-600" />
+                      <span className="text-sm text-slate-700">Pin message</span>
+                    </button>
+                  )}
+
                   <button
-                    onClick={() => handlePinMessage(i)}
-                    className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center space-x-3 transition-colors"
-                  >
-                    <Pin className="h-4 w-4 text-slate-600" />
-                    <span className="text-sm text-slate-700">Pin message</span>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteMessage(msg._id)}
+                    onClick={() => {
+                      onDeleteMessage(msg._id)
+                      setActiveMessageMenu(null)
+                    }}
                     className="w-full px-4 py-3 text-left hover:bg-red-50 flex items-center space-x-3 transition-colors"
                   >
                     <Trash2 className="h-4 w-4 text-red-600" />
@@ -194,7 +230,12 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
               placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
+              onKeyDown={(e)=>{
+                if (e.key === 'Enter' && newMessage.trim()) {
+                  onSendMessage(newMessage);
+                  setNewMessage('');
+                }
+              }}
             />
             <button className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2">
               <Smile className="h-5 w-5" />
@@ -205,7 +246,12 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
               <Mic className="h-5 w-5" />
             </button>
             <button
-              onClick={handleSendMessage}
+              onClick={() => {
+                if(newMessage.trim()){
+                  onSendMessage(newMessage)
+                  setNewMessage('')
+                }
+              }}
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
             >
               <Send className="h-5 w-5" />

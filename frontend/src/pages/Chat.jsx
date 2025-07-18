@@ -4,12 +4,14 @@ import ChatWindow from '../components/ChatWindow'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, useParams } from 'react-router-dom'
+import { toast, Bounce } from 'react-toastify'
 
 const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null)
   const [messages, setMessages] = useState([])
   const [users, setUsers] = useState([])
   const [conversations, setConversations] = useState([])
+  const [pinnedMessages, setPinnedMessages] = useState([])
   const { user } = useAuth()
 
   const { conversationId } = useParams()
@@ -73,29 +75,56 @@ const Chat = () => {
     navigate(`/messages/${conversation._id}`)
     setSelectedConversation(conversation)
     setMessages([])
+    setPinnedMessages([])
 
     try {
-        const res = await fetch(`http://localhost:3000/api/messages/${conversation._id}`, {
+      const [resMessages, resPinned] = await Promise.all([
+        fetch(`http://localhost:3000/api/messages/${conversation._id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-          credentials: 'include', 
+          credentials: 'include',
+        }),
+        fetch(`http://localhost:3000/api/conversations/${conversation._id}/pinned`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
         })
-        const data = await res.json()
-        if(res.ok) {
-          const formattedMessages = data.map(message => ({
-            _id: message._id,
-            sender: message.senderId,
-            text: message.content,
-            deleted: message.deleted,
-            time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }))
-          
-          setMessages(formattedMessages)
-        } else {
-          console.error('Failed to fetch messages:', data.message)
-        }
+      ])
+
+      // Handle pinned messages
+      const pinnedData = await resPinned.json()
+      if (resPinned.ok) {
+        const formattedPinned = pinnedData.map(msg => ({
+          _id: msg._id,
+          sender: msg.senderId,
+          senderName: msg.senderId.fullName,
+          text: msg.content,
+          time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          deleted: msg.deleted || false
+        }))
+        setPinnedMessages(formattedPinned)
+      } else {
+        console.error('Failed to fetch pinned messages:', pinnedData.message)
+      }
+
+      // Handle messages
+      const messagesData = await resMessages.json()
+      if (resMessages.ok) {
+        const formattedMessages = messagesData.map(msg => ({
+          _id: msg._id,
+          sender: msg.senderId,
+          text: msg.content,
+          time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          deleted: msg.deleted || false
+        }))
+        setMessages(formattedMessages)
+      } else {
+        console.error('Failed to fetch messages:', messagesData.message)
+      }
       } catch (error) {
         console.error('Error fetching messages:', error)
     }
@@ -165,11 +194,105 @@ const Chat = () => {
   }
 
   const handleDeleteMessage = async (messageId) => {
-    setMessages(prevMessages => 
-      prevMessages.map(msg => 
-        msg._id === messageId ? { ...msg, deleted: true } : msg
-      )
-    )
+    if (!selectedConversation || !messageId) {
+      console.error('No conversation selected or message ID is missing')
+      return
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/messages/${messageId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setMessages(prevMessages => 
+          prevMessages.map(msg => 
+            msg._id === messageId ? { ...msg, deleted: true } : msg
+          )
+        )
+        console.log('Message deleted successfully:', data)
+      } else {
+        console.error('Failed to delete message:', data.message)
+      }
+    
+    } catch (error) {
+      console.error('Error deleting message:', error) 
+    }
+  }
+
+  const handlePinMessage = async (msgId) => {
+    if (!selectedConversation || !msgId) {
+      console.error('No conversation selected or message ID is missing')
+      return
+    }
+
+    if (pinnedMessages.length >= 3) {
+      toast.warn('You can only pin up to 3 messages. Please unpin at least 1 message before pinning a new one.')
+      return
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${selectedConversation._id}/pin`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ messageId: msgId }),
+      })
+      const data = await res.json()
+
+      if (res.ok) {
+        console.log('Message pinned successfully:', data)
+        setPinnedMessages(prevPinned => [...prevPinned, {
+          _id: data.pinnedMessages._id,
+          sender: data.pinnedMessages.senderId,
+          senderName: data.pinnedMessages.senderId.fullName,
+          text: data.pinnedMessages.content,
+          time: new Date(data.pinnedMessages.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }])
+      } else {
+        console.error('Failed to pin message:', data.message)
+      }
+    } catch (error) {
+      console.error('Error pinning message:', error)
+      return
+    }
+  }
+
+  const handleUnpinMessage = async (msgId) => {
+    if(!selectedConversation || !msgId) {
+      console.error('No conversation selected or message ID is missing')
+      return
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${selectedConversation._id}/unpin`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ messageId: msgId }),
+      })
+      const data = await res.json()
+
+      if (res.ok) {
+        console.log('Message unpinned successfully:', data)
+        setPinnedMessages(prevPinned => prevPinned.filter(msg => msg._id !== msgId))
+      } else {
+        console.error('Failed to unpin message:', data.message)
+      }
+    } catch (error) {
+      console.error('Error unpinning message:', error)
+      return
+    }
   }
 
   return (
@@ -189,6 +312,9 @@ const Chat = () => {
           currentUserId={user.id}
           onSendMessage={handleSendMessage} 
           onDeleteMessage={handleDeleteMessage}
+          pinnedMessages={pinnedMessages}
+          onPinMessage={handlePinMessage}
+          onUnpinMessage={handleUnpinMessage} 
         />
       </div>
     </div>

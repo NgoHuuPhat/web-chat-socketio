@@ -1,6 +1,6 @@
 const User = require('../../models/Account')
 const Conversation = require('../../models/Conversation')
-
+const Message = require('../../models/Message')
 class ConversationController {
 
     // [GET] /api/conversations
@@ -80,6 +80,109 @@ class ConversationController {
 
         } catch (error) {
             console.error('Error creating conversation:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [PATCH] /api/conversations/:conversationId/pin
+    async pinMessage(req, res) {
+        try {
+            const { conversationId } = req.params
+            const { messageId } = req.body
+
+            if (!messageId) {
+                return res.status(400).json({ message: 'Message ID is required.' })
+            }
+
+            const message = await Message.findById(messageId)
+            if(message.deleted) {
+                return res.status(400).json({ message: 'Cannot pin a deleted message.' })
+            }
+
+            if( !message || !message.conversationId.equals(conversationId)) {
+                return res.status(404).json({ message: 'Message not found in this conversation.' })
+            }
+
+            const conversation = await Conversation.findById(conversationId)
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found.' })
+            }
+
+            if(conversation.pinnedMessageIds.length >= 3) {
+                return res.status(400).json({ message: 'You can only pin up to 3 messages.' })
+            }
+
+            if (conversation.pinnedMessageIds.includes(messageId)) {
+                return res.status(400).json({ message: 'Message is already pinned.' })
+            }
+
+            conversation.pinnedMessageIds.push(messageId)
+            await conversation.save()
+
+            // Optional: Populate pinned messages
+            const pinnedMessages = await Message.findById(messageId)
+                .populate('senderId', 'fullName avatar')
+
+            res.status(200).json({ 
+                message: 'Message pinned successfully.', 
+                pinnedMessages 
+            })
+
+        } catch (error) {
+            console.error('Error pinning message:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [PATCH] /api/conversations/:conversationId/unpin
+    async unpinMessage(req, res) {
+        try {
+            const { conversationId } = req.params
+            const { messageId } = req.body
+
+            if (!messageId) {
+                return res.status(400).json({ message: 'Message ID is required.' })
+            }
+
+            const conversation = await Conversation.findById(conversationId)
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found.' })
+            }
+
+            conversation.pinnedMessageIds = conversation.pinnedMessageIds.filter(id => id.toString() !== messageId.toString())
+            await conversation.save()
+
+            res.status(200).json({ message: 'Message unpinned successfully.', conversation })
+        } catch (error) {
+            console.error('Error pinning message:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [GET] /api/conversations/:conversationId/pinned
+    async getPinnedMessages(req, res) {
+        try {
+            const { conversationId } = req.params
+            const conversation = await Conversation.findById(conversationId)
+            .populate({
+                path: 'pinnedMessageIds',
+                populate: {
+                    path: 'senderId',
+                    select: 'fullName avatar'
+                }
+            })
+
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found.' })
+            }
+
+            if (conversation.pinnedMessageIds.length === 0) {
+                return res.status(404).json({ message: 'No pinned messages found.' })
+            }
+
+            res.status(200).json(conversation.pinnedMessageIds)
+        } catch (error) {
+            console.error('Error fetching pinned messages:', error)
             res.status(500).json({ message: 'Internal server error' })
         }
     }

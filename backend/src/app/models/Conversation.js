@@ -10,6 +10,7 @@ const ConversationSchema = new Schema(
         createdBy: { type: Schema.Types.ObjectId, ref: 'Account', default: null },
         lastMessage: { type: Schema.Types.ObjectId, ref: 'Message', default: null },
         lastMessageTime: { type: Date, default: Date.now },
+        pinnedMessageIds: [{ type: Schema.Types.ObjectId, ref: 'Message' }],
     }, 
     { timestamps: true }
 )
