@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Mic, Video, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2 } from 'lucide-react'
 import getTimeAgo from '../utils/getTimeAgo'
+import EmojiPicker from 'emoji-picker-react'
 
 const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessage, onDeleteMessage, pinnedMessages, onPinMessage, onUnpinMessage }) => {
   const [newMessage, setNewMessage] = useState('')
   const [activeMessageMenu, setActiveMessageMenu] = useState(null)
   const [showAllPinned, setshowAllPinned] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
@@ -44,7 +46,6 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
 
   const isGroup = selectedConversation.isGroup
   const otherUser = isGroup ? null : selectedConversation.members.find(m => m._id !== currentUserId)
-  console.log('Selected Conversation:', otherUser)
   const displayName = isGroup ? selectedConversation.groupName : otherUser?.fullName || 'Unknown'
   const displayColor = isGroup ? 'bg-gradient-to-r from-purple-500 to-pink-500' : otherUser?.color || 'bg-slate-400'
   const isOnline = isGroup ? false : otherUser?.isOnline
@@ -240,9 +241,22 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
                 }
               }}
             />
-            <button className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2">
-              <Smile className="h-5 w-5" />
-            </button>
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2">
+              <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+                <Smile className="h-5 w-5" />
+              </button>
+
+              {showEmojiPicker && (
+                <div className="absolute bottom-full right-0 z-50">
+                  <EmojiPicker
+                    onEmojiClick={(emojiData) => {
+                      setNewMessage((prev) => prev + emojiData.emoji)
+                      setShowEmojiPicker(false)
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center space-x-2">
             <button className="p-3 hover:bg-slate-100 rounded-2xl transition-colors">
