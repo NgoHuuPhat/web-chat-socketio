@@ -10,7 +10,7 @@ class ConversationController {
             const conversations = await Conversation.find({
                 members: { $in: [userId] }
             })
-            .populate('members', 'fullName avatar')
+            .populate('members')
             .populate('lastMessage')
             .sort({ lastMessageTime: -1 }) 
 

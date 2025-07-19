@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Mic, Video, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2 } from 'lucide-react'
+import getTimeAgo from '../utils/getTimeAgo'
 
 const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessage, onDeleteMessage, pinnedMessages, onPinMessage, onUnpinMessage }) => {
   const [newMessage, setNewMessage] = useState('')
@@ -43,9 +44,11 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
 
   const isGroup = selectedConversation.isGroup
   const otherUser = isGroup ? null : selectedConversation.members.find(m => m._id !== currentUserId)
+  console.log('Selected Conversation:', otherUser)
   const displayName = isGroup ? selectedConversation.groupName : otherUser?.fullName || 'Unknown'
   const displayColor = isGroup ? 'bg-gradient-to-r from-purple-500 to-pink-500' : otherUser?.color || 'bg-slate-400'
-  const isOnline = isGroup ? false : otherUser?.online
+  const isOnline = isGroup ? false : otherUser?.isOnline
+  const lastOnline = isGroup ? null : otherUser?.lastOnline 
 
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
@@ -64,7 +67,7 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-lg">{displayName}</h3>
-              {!isGroup && <p className="text-sm text-slate-500">{isOnline ? 'Active now' : 'Offline'}</p>}
+              {!isGroup && <p className="text-sm text-slate-500">{isOnline ? 'Active now' : `Active ${getTimeAgo(lastOnline)}`}</p>}
             </div>
           </div>
           <div className="flex items-center space-x-2">

@@ -84,6 +84,10 @@ class AuthController {
                 })
             }
 
+            // Update is online 
+            checkEmail.isOnline = true
+            await checkEmail.save()
+
             // Create Access Token
             const payload = {
                 id: checkEmail._id,
@@ -136,14 +140,26 @@ class AuthController {
     }
 
     //[GET] /api/auth/logout
-    logout(req, res) {
-        // Delete accessToken - refreshToken from cookie
-        res.clearCookie('accessToken')
-        res.clearCookie('refreshToken')
+    async logout(req, res) {
+        try {
+            const userId = req.user.id
 
-        res.status(200).json({
-            message: 'Logout successful!',
-        })
+            // Update user's isOnline status to false
+            await Account.findByIdAndUpdate(userId, { isOnline: false, lastOnline: new Date() }, { new: true })
+
+            // Delete accessToken - refreshToken from cookie
+            res.clearCookie('accessToken')
+            res.clearCookie('refreshToken')
+
+            res.status(200).json({
+                message: 'Logout successful!',
+            })
+        } catch (error) {
+            console.error('Logout error:', error)
+            res.status(500).json({
+                message: 'An error occurred during logout. Please try again later.',
+            })
+        }
     }
 
     //[POST] /api/auth/refresh-token

@@ -176,7 +176,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                             const partner = conversation.members.find(member => member._id !== currentUserId)
                             if (partner) {
                                 displayName = partner.fullName
-                                isOnline = partner.online
+                                isOnline = partner.lastOnline
                             }
                         }
 

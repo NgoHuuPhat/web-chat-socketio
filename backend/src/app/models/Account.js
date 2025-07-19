@@ -17,6 +17,8 @@ const AccountSchema = new Schema(
         roleId: { type : mongoose.Schema.ObjectId, ref: 'Role', required: true }, 
         status: { type: String, required: true, enum: ['active', 'inactive'], default: 'active' },
         loginType: { type: String, enum:['local','google','facebook'], required: true, default: 'local' },
+        isOnline: { type: Boolean, default: false },
+        lastOnline: { type: Date }
     },
     { timestamps: true },
 )
