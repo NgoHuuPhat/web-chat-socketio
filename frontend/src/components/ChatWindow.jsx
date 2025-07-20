@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Send, Mic, Video, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2 } from 'lucide-react'
 import getTimeAgo from '../utils/getTimeAgo'
 import EmojiPicker from 'emoji-picker-react'
+import useClickOutside from '../hooks/useClickOutside'
 
 const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessage, onDeleteMessage, pinnedMessages, onPinMessage, onUnpinMessage }) => {
   const [newMessage, setNewMessage] = useState('')
@@ -10,20 +11,18 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const messagesEndRef = useRef(null)
 
+  const emojiPickerRef = useRef(null)
+  const messagesMenuRef = useRef(null)
+  const pinnedMessagesRef = useRef(null)
+
+  // Refs for click outside detection
+  useClickOutside(emojiPickerRef, () => setShowEmojiPicker(false), showEmojiPicker)
+  useClickOutside(messagesMenuRef, () => setActiveMessageMenu(null), activeMessageMenu !== null)
+  useClickOutside(pinnedMessagesRef, () => setshowAllPinned(false), showAllPinned)
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (activeMessageMenu !== null && !event.target.closest('.message-menu')) {
-        setActiveMessageMenu(null)
-      }
-    }
-
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [activeMessageMenu])
 
   const handleMessageMenuClick = (index, event) => {
     event.stopPropagation()
@@ -83,7 +82,7 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
 
       {/* Pinned Messages */}
       {pinnedMessages && pinnedMessages.length > 0 && (
-        <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 py-2 m-2 shadow-sm rounded-md">
+        <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 py-2 m-2 shadow-sm rounded-md" ref={pinnedMessagesRef}>
           {/* Header */}
           <div className="flex items-center gap-2 mb-2">
             <MessageSquareText className="h-5 w-5 text-purple-600 flex-shrink-0" />
@@ -161,7 +160,8 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
                 <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
                   <button
                     onClick={(e) => handleMessageMenuClick(i, e)}
-                    className="p-2 hover:bg-slate-200 rounded-full transition-colors message-menu"
+                    className="p-2 hover:bg-slate-200 rounded-full transition-colors message-menu" 
+                    ref={messagesMenuRef}
                   >
                     <MoreVertical className="h-4 w-4 text-slate-600" />
                   </button>
@@ -241,9 +241,9 @@ const ChatWindow = ({ selectedConversation, currentUserId, messages, onSendMessa
                 }
               }}
             />
-            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2">
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2" ref={emojiPickerRef}>
               <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-                <Smile className="h-5 w-5" />
+                <Smile className={`h-5 cursor-pointer w-5 ${showEmojiPicker ? 'text-pink-700' : 'text-gray-500'}`} />
               </button>
 
               {showEmojiPicker && (
