@@ -40,7 +40,7 @@ class ConversationController {
 
             const filteredConversations = conversations.filter(conversation => {
                 if(conversation.isGroup) {
-                    return regex.test(conversation.name)
+                    return regex.test(conversation.groupName)
 
                 } else {
                     const otherMember = conversation.members.find(member => member._id.toString() !== userId.toString())
