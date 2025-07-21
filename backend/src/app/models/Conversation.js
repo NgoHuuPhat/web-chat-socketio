@@ -11,6 +11,7 @@ const ConversationSchema = new Schema(
         lastMessage: { type: Schema.Types.ObjectId, ref: 'Message', default: null },
         lastMessageTime: { type: Date, default: Date.now },
         pinnedMessageIds: [{ type: Schema.Types.ObjectId, ref: 'Message' }],
+        unreadCount: { type: Map, of: Number, default: {} },
     }, 
     { timestamps: true }
 )

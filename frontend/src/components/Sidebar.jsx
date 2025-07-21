@@ -203,7 +203,8 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                         nameClass += isSelected ? 'text-white' : 'text-slate-900'
 
                         let messageClass = 'text-sm truncate '
-                        messageClass += isSelected ? 'text-white/80' : 'text-slate-500'
+                        conversation.unreadCount?.[currentUserId] > 0 ? messageClass += 'font-bold ' : messageClass += 'font-normal '
+                        messageClass += isSelected ? 'text-white/80' : 'text-slate-800'
 
                         return (
                             <li key={index} className={containerClass} onClick={() => onSelectConversation(conversation)}>
@@ -227,9 +228,9 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                                 </div>
 
                                 {/* Badge messages unread */}
-                                {conversation.unread > 0 && (
+                                {conversation.unreadCount?.[currentUserId] > 0 && (
                                 <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg animate-bounce">
-                                    {conversation.unread}
+                                    {conversation.unreadCount[currentUserId] > 5 ? '5+' : conversation.unreadCount[currentUserId]}
                                 </span>
                                 )}
                             </div>

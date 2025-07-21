@@ -53,6 +53,15 @@ class MessageController {
                 content,
             })
 
+
+            // Update unread count for the sender
+            conversation.members.forEach(member => {
+                if( member.toString() !== senderId) {
+                    const currentCount = conversation.unreadCount.get(member.toString()) || 0
+                    conversation.unreadCount.set(member.toString(), currentCount + 1)
+                }
+            })
+
             // Update conversation with the latest message
             conversation.lastMessage = message._id
             conversation.lastMessageTime = message.createdAt

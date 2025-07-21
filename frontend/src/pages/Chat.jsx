@@ -68,8 +68,32 @@ const Chat = () => {
     fetchConversations()
   }, [])
 
+  const markMessagesAsRead = async (conversationId) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/read`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setConversations(prevConversations =>
+          prevConversations.map(conversation => 
+            conversation._id === conversationId ? { ...conversation, unreadCount: {...conversation.unreadCount, [user.id]: 0} } : conversation
+          )
+        )
+      } else {
+        console.error('Failed to mark messages as read:', data.message)
+      }
+    } catch (error) {
+      console.error('Error marking messages as read:', error)
+    }
+  }
+
   // Handle selecting a conversation
-  const handleSelectConversation = async(conversation) => {
+  const handleSelectConversation = async (conversation) => {
     if (!conversation) return
 
     navigate(`/messages/${conversation._id}`)
@@ -81,52 +105,58 @@ const Chat = () => {
       const [resMessages, resPinned] = await Promise.all([
         fetch(`http://localhost:3000/api/messages/${conversation._id}`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
         }),
         fetch(`http://localhost:3000/api/conversations/${conversation._id}/pinned`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-        })
+        }),
       ])
 
-      // Handle pinned messages
-      const pinnedData = await resPinned.json()
+      const [messagesData, pinnedData] = await Promise.all([
+        resMessages.json(),
+        resPinned.json(),
+      ])
+
+      if (resMessages.ok) {
+        const formattedMessages = messagesData.map((msg) => ({
+          _id: msg._id,
+          sender: msg.senderId,
+          text: msg.content,
+          time: new Date(msg.createdAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          deleted: msg.deleted || false,
+        }))
+        setMessages(formattedMessages)
+      } else {
+        console.error('Failed to fetch messages:', messagesData.message)
+      }
+
       if (resPinned.ok) {
-        const formattedPinned = pinnedData.map(msg => ({
+        const formattedPinned = pinnedData.map((msg) => ({
           _id: msg._id,
           sender: msg.senderId,
           senderName: msg.senderId.fullName,
           text: msg.content,
-          time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          deleted: msg.deleted || false
+          time: new Date(msg.createdAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          deleted: msg.deleted || false,
         }))
         setPinnedMessages(formattedPinned)
       } else {
         console.error('Failed to fetch pinned messages:', pinnedData.message)
       }
 
-      // Handle messages
-      const messagesData = await resMessages.json()
-      if (resMessages.ok) {
-        const formattedMessages = messagesData.map(msg => ({
-          _id: msg._id,
-          sender: msg.senderId,
-          text: msg.content,
-          time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          deleted: msg.deleted || false
-        }))
-        setMessages(formattedMessages)
-      } else {
-        console.error('Failed to fetch messages:', messagesData.message)
-      }
-      } catch (error) {
-        console.error('Error fetching messages:', error)
+      // Mark messages as read
+      await markMessagesAsRead(conversation._id)
+    } catch (error) {
+      console.error('Error loading conversation:', error)
     }
   }
 
@@ -134,17 +164,16 @@ const Chat = () => {
   useEffect(() => {
     if (conversationId && conversations.length > 0) {
       const conversation = conversations.find(c => c._id === conversationId)
-      if (conversation) {
+
+      if (conversation && (!selectedConversation || selectedConversation._id !== conversation._id)) {
         handleSelectConversation(conversation)
-      } else {
-        console.error('Conversation not found:', conversationId)
-        navigate('/')
       }
-    // If no conversation is selected, select the first one
-    } else if(!selectedConversation && conversations.length > 0) {
+
+    } else if (!conversationId && !selectedConversation && conversations.length > 0) {
       handleSelectConversation(conversations[0])
     }
   }, [conversationId, conversations])
+
 
   // handle sending a message
   const handleSendMessage = async (messageText) => {

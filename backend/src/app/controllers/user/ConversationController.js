@@ -186,6 +186,32 @@ class ConversationController {
             res.status(500).json({ message: 'Internal server error' })
         }
     }
+
+    // [PATCH] /api/conversations/:conversationId/read
+    async markMessagesAsRead(req, res) {
+        try {
+            const { conversationId } = req.params
+            const userId = req.user.id
+            const conversation = await Conversation.findById(conversationId)
+
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found.' })
+            }
+
+            if (!conversation.unreadCount.has(userId)) {
+                return res.status(400).json({ message: 'No unread messages for this user.' })
+            }
+
+            conversation.unreadCount.set(userId, 0)
+            await conversation.save()
+            
+            res.status(200).json({ message: 'Messages marked as read successfully.' })
+        }
+        catch (error) {
+            console.error('Error marking messages as read:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
 }
 
 module.exports = new ConversationController();
