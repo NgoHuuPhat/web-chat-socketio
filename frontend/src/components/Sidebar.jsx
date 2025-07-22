@@ -1,5 +1,6 @@
 import  { useEffect, useState }  from 'react'
 import { UserPlus, Search, Users, Plus } from 'lucide-react'
+import getTimeAgo from '../utils/getTimeAgo'
 
 const Sidebar = ({ users, selectedConversation, conversations, currentUserId, onSelectConversation }) => {
   const [searchItem, setSearchItem] = useState('')
@@ -221,10 +222,10 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
-                                <p className={nameClass}>{displayName}</p>
-                                <p className={messageClass}>
-                                    {conversation.lastMessage?.content || ''}
-                                </p>
+                                    <p className={nameClass}>{displayName}</p>
+                                    <p className={messageClass}>
+                                        {conversation.lastMessage?.content || ''} • {getTimeAgo(conversation.lastMessage?.createdAt)}
+                                    </p>
                                 </div>
 
                                 {/* Badge messages unread */}
