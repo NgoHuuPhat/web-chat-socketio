@@ -224,7 +224,12 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                                 <div className="flex-1 min-w-0">
                                     <p className={nameClass}>{displayName}</p>
                                     <p className={messageClass}>
-                                        {conversation.lastMessage?.content || ''} • {getTimeAgo(conversation.lastMessage?.createdAt)}
+                                        {
+                                            conversation.lastMessage?.content.length > 10 
+                                                ? `${conversation.lastMessage?.content.slice(0, 10)}... ` 
+                                                : conversation.lastMessage?.content || ''
+                                        } 
+                                            • {getTimeAgo(conversation.lastMessage?.createdAt)}
                                     </p>
                                 </div>
 

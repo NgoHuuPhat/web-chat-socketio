@@ -1,7 +1,7 @@
 const User = require('../../models/Account')
 const Message = require('../../models/Message')
 const Conversation = require('../../models/Conversation')
-const e = require('express')
+const cloudinary = require('../../../config/cloudinary')
 
 class MessageController {
     // [POST] /api/messages
@@ -51,6 +51,7 @@ class MessageController {
                 conversationId: conversation._id,
                 senderId,
                 content,
+                messageType: 'text'
             })
 
 
@@ -134,6 +135,116 @@ class MessageController {
             })
         } catch (error) {
             console.error('Error deleting message:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [POST] /api/messages/media
+    async sendMediaMessage(req, res) {
+        try {
+            const { conversationId } = req.body
+            const senderId = req.user.id
+
+            if (!conversationId) {
+                return res.status(400).json({ message: 'Conversation ID is required.' })
+            }
+
+            const conversation = await Conversation.findById(conversationId)
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found.' })
+            }
+
+            if(!conversation.members.includes(senderId)) {
+                return res.status(403).json({ message: 'You are not a member of this conversation.' })
+            }
+
+            // Check uploaded files
+            if (!req.uploadResults || Object.keys(req.uploadResults).length === 0) {
+                return res.status(400).json({ message: 'No files uploaded.' })
+            }
+
+            const attachments = []
+            for (const fieldName in req.uploadResults) {
+                const uploads = req.uploadResults[fieldName]
+
+                for(const upload of uploads) {
+                    let attachmentType = 'file'
+                    switch (fieldName) {
+                        case 'image':
+                            attachmentType = 'image'
+                            break
+                        case 'video':
+                            attachmentType = 'video'
+                            break
+                        case 'audio':
+                            attachmentType = 'audio'
+                            break
+                        default:
+                            attachmentType = 'file'
+                            break
+                    }
+
+                    const attachment = {
+                        type: attachmentType,
+                        url: upload.secure_url,
+                        publicId: upload.public_id,
+                        originalName: upload.originalName,
+                        mimetype: upload.mimetype,
+                        size: upload.size
+                    }
+
+                    if(upload.width && upload.height) {
+                        attachment.dimensions = {
+                            width: upload.width,
+                            height: upload.height
+                        }
+                    }
+
+                    if(attachmentType === 'video' && upload.public_id) {
+                        attachment.thumbnailUrl = cloudinary.url(upload.public_id, {
+                            resource_type: 'video',
+                            width: 300,
+                            height: 200,
+                            crop: 'limit',
+                            format: 'jpg'
+                        })
+                    }
+
+                    if(upload.duration) {
+                        attachment.duration = upload.duration
+                    }
+
+                    attachments.push(attachment)
+                }
+            }
+            console.log("📂 Attachments prepared for message:", attachments)
+
+            const message = await Message.create({
+                conversationId: conversation._id,
+                senderId,
+                content: '', 
+                attachments: attachments,
+                messageType: 'media'
+            })
+
+            // Update unread count for the sender
+            conversation.members.forEach(member => {
+                if (member.toString() !== senderId) {
+                    const currentCount = conversation.unreadCount.get(member.toString()) || 0
+                    conversation.unreadCount.set(member.toString(), currentCount + 1)
+                }
+            })
+
+            // Update conversation with the latest message
+            conversation.lastMessage = message._id
+            conversation.lastMessageTime = new Date()
+            await conversation.save()
+
+            console.log("📩 Media message sent successfully:", message)
+
+            res.status(201).json(message)
+        } catch (error) {
+            console.error('Error sending media message:', error)
             res.status(500).json({ message: 'Internal server error' })
         }
     }

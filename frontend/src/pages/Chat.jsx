@@ -12,6 +12,7 @@ const Chat = () => {
   const [users, setUsers] = useState([])
   const [conversations, setConversations] = useState([])
   const [pinnedMessages, setPinnedMessages] = useState([])
+  const [uploading, setUploading] = useState(false)
   const { user } = useAuth()
 
   const { conversationId } = useParams()
@@ -124,12 +125,14 @@ const Chat = () => {
         const formattedMessages = messagesData.map((msg) => ({
           _id: msg._id,
           sender: msg.senderId,
-          text: msg.content,
+          text: msg.content || '',
           time: new Date(msg.createdAt).toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
           }),
           deleted: msg.deleted || false,
+          attachments: msg.attachments || [],
+          messageType: msg.messageType || 'text',
         }))
         setMessages(formattedMessages)
       } else {
@@ -141,16 +144,19 @@ const Chat = () => {
           _id: msg._id,
           sender: msg.senderId,
           senderName: msg.senderId.fullName,
-          text: msg.content,
+          text: msg.content || '',
           time: new Date(msg.createdAt).toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
           }),
           deleted: msg.deleted || false,
+          attachments: msg.attachments || [],
+          messageType: msg.messageType || 'text',
         }))
         setPinnedMessages(formattedPinned)
       } else {
         console.error('Failed to fetch pinned messages:', pinnedData.message)
+        setPinnedMessages([])
       }
 
       // Mark messages as read
@@ -256,13 +262,14 @@ const Chat = () => {
   }
 
   const handlePinMessage = async (msgId) => {
+    console.log('Pinning message:', msgId)
     if (!selectedConversation || !msgId) {
       console.error('No conversation selected or message ID is missing')
       return
     }
 
     if (pinnedMessages.length >= 3) {
-      toast.warn('You can only pin up to 3 messages. Please unpin at least 1 message before pinning a new one.')
+      toast.warn('You can only pin up to 3 message!')
       return
     }
 
@@ -276,15 +283,14 @@ const Chat = () => {
         body: JSON.stringify({ messageId: msgId }),
       })
       const data = await res.json()
-
+      console.log('Pinning message response:', data)
       if (res.ok) {
-        console.log('Message pinned successfully:', data)
         setPinnedMessages(prevPinned => [...prevPinned, {
-          _id: data.pinnedMessages._id,
-          sender: data.pinnedMessages.senderId,
-          senderName: data.pinnedMessages.senderId.fullName,
-          text: data.pinnedMessages.content,
-          time: new Date(data.pinnedMessages.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          _id: data.pinnedMessage._id,
+          sender: data.pinnedMessage.senderId,
+          senderName: data.pinnedMessage.senderId.fullName,
+          text: data.pinnedMessage.content,
+          time: new Date(data.pinnedMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }])
       } else {
         console.error('Failed to pin message:', data.message)
@@ -324,6 +330,61 @@ const Chat = () => {
     }
   }
 
+  // Handle file uploads
+  const handleSendMediaMessage = async (files) => {
+    if(!selectedConversation || !files || files.length === 0) {
+      console.error('No conversation selected or no files to upload')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('conversationId', selectedConversation._id)
+
+      // Append each file to the FormData
+      files.forEach(file => {
+        if(file.type.startsWith('image/')) {
+          formData.append('image', file)
+        } else if(file.type.startsWith('video/')) {
+          formData.append('video', file)
+        } else if(file.type.startsWith('audio/')) {
+          formData.append('audio', file)
+        } else {
+          formData.append('file', file)
+        }
+      })
+
+      const res = await fetch('http://localhost:3000/api/messages/media', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const mediaMessages = {
+          _id: data._id,
+          sender: user.id,
+          text: '',
+          time: new Date(data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          attachments: data.attachments,
+          messageType: 'media',
+          deleted: false,
+        }
+
+        setMessages(prevMessages => [...prevMessages, mediaMessages])
+        setUploading(false)
+      } else {
+        console.error('Failed to send media message:', data.message)
+        toast.error('Failed to send media')
+      }
+    } catch (error) {
+      console.error('Error uploading media files:', error)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-100 to-purple-50">
       <Header />
@@ -344,6 +405,8 @@ const Chat = () => {
           pinnedMessages={pinnedMessages}
           onPinMessage={handlePinMessage}
           onUnpinMessage={handleUnpinMessage} 
+          onSendMediaMessage={handleSendMediaMessage}
+          uploading={uploading}
         />
       </div>
     </div>

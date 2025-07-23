@@ -11,13 +11,32 @@ const MessageSchema = new Schema(
             {
                 type: {
                     type: String,
-                    enum: ['image', 'file', 'audio'],
+                    enum: ['image', 'video', 'file', 'audio'],
                     default: 'image',
                 },
-                url: String,
+                url: { type: String, required: true },
+                publicId: { type: String, required: true },
+                originalName: { type: String },
+                mimetype: { type: String},
+                size: { type: Number },
+                thumbnailUrl: { type: String },
+                duration: { type: Number }, 
+                dimensions: {
+                    width: { type: Number },
+                    height: { type: Number }
+                }
             }
         ],
-        seenBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+        messageType: {
+            type: String,
+            enum: ['text', 'media', 'system'],
+            default: 'text'
+        },
+        seenBy: [{
+            userId: { type: Schema.Types.ObjectId, ref: 'Account' },
+            seenAt: { type: Date, default: Date.now }
+        }],
+        
     },
     { timestamps: true }
 )

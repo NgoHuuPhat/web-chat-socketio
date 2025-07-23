@@ -71,7 +71,7 @@
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={toggleDropdown}
-                className="flex items-center space-x-2 hover:bg-white/10 p-2 rounded-xl transition duration-300"
+                className="flex items-center space-x-2 hover:bg-white/10 p-2 rounded-xl cursor:pointer transition duration-300"
               >
                 <img src={avatar} alt="User Avatar" className="h-8 w-8 rounded-full object-cover" />
                 <span className="font-semibold">Hữu Phát</span>

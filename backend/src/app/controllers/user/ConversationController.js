@@ -95,12 +95,12 @@ class ConversationController {
             }
 
             const message = await Message.findById(messageId)
-            if(message.deleted) {
-                return res.status(400).json({ message: 'Cannot pin a deleted message.' })
-            }
-
             if( !message || !message.conversationId.equals(conversationId)) {
                 return res.status(404).json({ message: 'Message not found in this conversation.' })
+            }
+            
+            if(message.deleted) {
+                return res.status(400).json({ message: 'Cannot pin a deleted message.' })
             }
 
             const conversation = await Conversation.findById(conversationId)
@@ -120,12 +120,12 @@ class ConversationController {
             await conversation.save()
 
             // Optional: Populate pinned messages
-            const pinnedMessages = await Message.findById(messageId)
+            const pinnedMessage = await Message.findById(messageId)
                 .populate('senderId', 'fullName avatar')
 
             res.status(200).json({ 
                 message: 'Message pinned successfully.', 
-                pinnedMessages 
+                pinnedMessage
             })
 
         } catch (error) {
