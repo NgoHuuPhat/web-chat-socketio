@@ -225,11 +225,37 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                                     <p className={nameClass}>{displayName}</p>
                                     <p className={messageClass}>
                                         {
-                                            conversation.lastMessage?.content.length > 10 
-                                                ? `${conversation.lastMessage?.content.slice(0, 10)}... ` 
-                                                : conversation.lastMessage?.content || ''
-                                        } 
-                                            • {getTimeAgo(conversation.lastMessage?.createdAt)}
+                                            (() => {
+                                                const lastMessage = conversation.lastMessage
+                                                if (!lastMessage) return ''
+
+                                                const { content, senderId, attachments, deleted, createdAt } = lastMessage
+                                                const prefix = senderId === currentUserId ? 'You: ' : ''
+                                                const timeAgo = getTimeAgo(createdAt)
+
+                                                if(deleted){
+                                                    return `${prefix}Message has been recalled • ${timeAgo}` 
+                                                }
+
+                                                if (attachments && attachments.length > 0) {
+                                                    const type = attachments[0].type
+                                                    const typeLabel =
+                                                        type === 'image' ? 'Sent a picture' :
+                                                        type === 'video' ? 'Sent a video' :
+                                                        type === 'file' ? 'Sent a file' :
+                                                        type === 'audio' ? 'Sent an audio' :
+                                                        'Sent an attachment'
+
+                                                    return `${prefix}${typeLabel} • ${timeAgo}`
+                                                }
+
+                                                if( content && content.length > 10) {
+                                                    return `${prefix}${content.slice(0, 10)}... ${timeAgo}`
+                                                } else {
+                                                    return `${prefix}${content} • ${timeAgo}`
+                                                }
+                                            })()
+                                        }
                                     </p>
                                 </div>
 

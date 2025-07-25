@@ -11,7 +11,10 @@ class ConversationController {
                 members: { $in: [userId] }
             })
             .populate('members')
-            .populate('lastMessage')
+            .populate({
+                path: 'lastMessage',
+                options: { withDeleted: true }
+            })
             .sort({ lastMessageTime: -1 }) 
 
             if (!conversations || conversations.length === 0) {

@@ -54,7 +54,7 @@ const Chat = () => {
           },
           credentials: 'include', 
         })
-        const data = await res.json()
+        const data = await res.json() 
         if (res.ok) {
           setConversations(data)
         } else {
@@ -220,6 +220,26 @@ const Chat = () => {
           }
 
           setMessages(prevMessages => [...prevMessages, newMessage])
+
+          setConversations(prevConversations => {
+            const updatedConversations = prevConversations.map(conversation => {
+              if (conversation._id === selectedConversation._id) {
+                return {
+                  ...conversation,
+                  lastMessage: {
+                    content: data.data.content,
+                    senderId: user.id,
+                    createdAt: data.data.createdAt,
+                  },
+                }
+              }
+              return conversation
+            })
+            return [
+              updatedConversations.find(c => c._id === selectedConversation._id),
+              ...updatedConversations.filter(c => c._id !== selectedConversation._id)
+            ]
+          })
         } else {
           console.error('Failed to send message:', data.message)
         }
@@ -244,25 +264,41 @@ const Chat = () => {
       })
 
       const data = await res.json()
-
       if (res.ok) {
         setMessages(prevMessages => 
           prevMessages.map(msg => 
             msg._id === messageId ? { ...msg, deleted: true } : msg
           )
         )
-        console.log('Message deleted successfully:', data)
+
+        setConversations(prevConversations => {
+          const updatedConversations = prevConversations.map(conversation => {
+            if (conversation._id === selectedConversation._id) {
+              return {
+                ...conversation,
+                lastMessage: {
+                  senderId: user.id,
+                  createdAt: data.data.createdAt,
+                  deleted: true
+                },
+              }
+            }
+            return conversation
+          })
+          return [
+            updatedConversations.find(c => c._id === selectedConversation._id),
+            ...updatedConversations.filter(c => c._id !== selectedConversation._id)
+          ]
+        })
       } else {
         console.error('Failed to delete message:', data.message)
       }
-    
     } catch (error) {
       console.error('Error deleting message:', error) 
     }
   }
 
   const handlePinMessage = async (msgId) => {
-    console.log('Pinning message:', msgId)
     if (!selectedConversation || !msgId) {
       console.error('No conversation selected or message ID is missing')
       return
@@ -283,7 +319,6 @@ const Chat = () => {
         body: JSON.stringify({ messageId: msgId }),
       })
       const data = await res.json()
-      console.log('Pinning message response:', data)
       if (res.ok) {
         setPinnedMessages(prevPinned => [...prevPinned, {
           _id: data.pinnedMessage._id,
@@ -291,6 +326,9 @@ const Chat = () => {
           senderName: data.pinnedMessage.senderId.fullName,
           text: data.pinnedMessage.content,
           time: new Date(data.pinnedMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          attachments: data.pinnedMessage.attachments || [],
+          messageType: data.pinnedMessage.messageType || 'text',
+          deleted: data.pinnedMessage.deleted || false,
         }])
       } else {
         console.error('Failed to pin message:', data.message)
@@ -319,7 +357,6 @@ const Chat = () => {
       const data = await res.json()
 
       if (res.ok) {
-        console.log('Message unpinned successfully:', data)
         setPinnedMessages(prevPinned => prevPinned.filter(msg => msg._id !== msgId))
       } else {
         console.error('Failed to unpin message:', data.message)
@@ -373,6 +410,28 @@ const Chat = () => {
         }
 
         setMessages(prevMessages => [...prevMessages, mediaMessages])
+
+        setConversations(prevConversations => {
+          const updatedConversations = prevConversations.map(conversation => {
+            if (conversation._id === selectedConversation._id) {
+              return {
+                ...conversation,
+                lastMessage: {
+                  content: '',
+                  senderId: user.id,
+                  createdAt: data.createdAt,
+                  attachments: data.attachments,
+                },
+              }
+            }
+            return conversation
+          })
+          return [
+            updatedConversations.find(c => c._id === selectedConversation._id),
+            ...updatedConversations.filter(c => c._id !== selectedConversation._id)
+          ]
+        })
+
         setUploading(false)
       } else {
         console.error('Failed to send media message:', data.message)

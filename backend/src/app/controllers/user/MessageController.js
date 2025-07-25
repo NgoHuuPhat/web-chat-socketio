@@ -115,8 +115,6 @@ class MessageController {
                 return res.status(403).json({ message: 'You can only delete your own messages.' })
             }
 
-            await message.delete()
-
             // Optionally, you can also remove the message from the conversation's lastMessage
             const conversation = await Conversation.findById(message.conversationId)
             if (conversation.lastMessage && conversation.lastMessage.toString() === id) {
@@ -126,11 +124,14 @@ class MessageController {
                 await conversation.save()
             }
 
+            await message.delete()
+
             res.status(200).json({ 
                 message: 'Message recalled successfully.',
                 data: { 
                     _id: message._id,
-                    deleted: true   
+                    deleted: true,
+                    createdAt: message.createdAt
                 }
             })
         } catch (error) {
