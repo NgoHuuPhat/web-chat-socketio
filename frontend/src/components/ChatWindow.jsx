@@ -3,6 +3,7 @@ import { Send, Mic, X, Video, Download, FileText, Smile, Paperclip, MessageSquar
 import getTimeAgo from '../utils/getTimeAgo'
 import EmojiPicker from 'emoji-picker-react'
 import useClickOutside from '../hooks/useClickOutside'
+import { toast } from 'react-toastify'
 
 const ChatWindow = ({ 
   selectedConversation, 
@@ -151,23 +152,46 @@ const ChatWindow = ({
                     {formatFileSize(attachment.size)}
                   </p>
                 </div>
-                <a
-                  href={attachment.url}
-                  download={attachment.originalName}
-                  className={`transition-colors ${
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDownload(attachment)
+                  }}
+                  className={`transition-colors cursor-pointer ${
                     msg.sender === currentUserId 
                       ? 'text-white hover:text-white/70' 
                       : 'text-slate-700 hover:text-slate-500'
                   }`}
                 >
                   <Download className="h-4 w-4" />
-                </a>
+                </button>
               </div>
             )}
           </div>
         ))}
       </div>
     )
+  }
+
+  const handleDownload = async (file) => {
+    try {
+      const res = await fetch(file.url)
+      if (!res.ok) throw new Error('Network response was not ok')
+      const blob = await res.blob()
+    
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = file.originalName
+      a.click()
+
+      setTimeout(() => {
+        URL.revokeObjectURL(a.href)
+        a.remove()
+      }, 1000)
+    } catch (error) {
+      console.error('Download failed:', error)
+      toast.error('Failed to download file. Please try again later.')
+    }
   }
 
   if (!selectedConversation) {
@@ -244,9 +268,9 @@ const ChatWindow = ({
               }}
               className="group bg-purple-50 px-3 py-2 rounded-md shadow-sm mb-1 last:mb-0 cursor-pointer hover:bg-purple-100 transition flex justify-between items-center"
             >
-              <p className="text-sm text-slate-800 truncate max-w-[85%]">
-                <span className="font-medium">{msg.senderName}</span>: {msg.text}
-              </p>
+                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                        <span className="font-medium">{msg.senderName}</span>: {msg.text}
+                      </p>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -272,7 +296,7 @@ const ChatWindow = ({
         </div>
       )}
 
-      
+
       {/* Messages */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
         {messages.map((msg, i) => (

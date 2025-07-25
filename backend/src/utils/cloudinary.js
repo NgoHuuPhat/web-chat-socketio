@@ -1,7 +1,7 @@
 const cloudinary = require('../config/cloudinary')
 const streamifier = require('streamifier')
 const path = require('path')
-const slugify = require('slugify')
+const { v4: uuidv4 } = require('uuid')
 
 const RAW_MIME_TYPES = [
     'application/pdf',
@@ -19,8 +19,6 @@ const uploadToCloudinary = (file) => {
     return new Promise((resolve, reject) => {
         const uploadOptions = { 
             folder: `${file.fieldname}s`,
-            use_filename: true,
-            unique_filename: false,
         }
 
         // If it's a video or audio file, add resource_type
@@ -29,9 +27,12 @@ const uploadToCloudinary = (file) => {
             uploadOptions.chunk_size = 3000000
         } else if (RAW_MIME_TYPES.includes(file.mimetype)) {
             uploadOptions.resource_type = 'raw'
-            const fileNameWithExt = path.basename(file.originalname)
-            uploadOptions.public_id = fileNameWithExt 
-        } 
+
+            const ext = path.extname(file.originalname)
+            const baseName = path.basename(file.originalname, ext)
+
+            uploadOptions.public_id = `${baseName}-${uuidv4()}${ext}`
+        }
 
         const stream = cloudinary.uploader.upload_stream(
             uploadOptions,
