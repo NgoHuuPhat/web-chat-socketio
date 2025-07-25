@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Mic, X, Video, Download, FileText, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2, Upload } from 'lucide-react'
+import { Send, Mic, X, Video, Download, FileVideo, FileImage, FileText, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2, Upload } from 'lucide-react'
 import getTimeAgo from '../utils/getTimeAgo'
 import EmojiPicker from 'emoji-picker-react'
 import useClickOutside from '../hooks/useClickOutside'
@@ -268,9 +268,55 @@ const ChatWindow = ({
               }}
               className="group bg-purple-50 px-3 py-2 rounded-md shadow-sm mb-1 last:mb-0 cursor-pointer hover:bg-purple-100 transition flex justify-between items-center"
             >
+              <div className="flex items-center space-x-2">
+                {msg.attachments?.length > 0 ? (() => {
+                  const type = msg.attachments[0].type
+                  const originalName = msg.attachments[0].originalName
+
+                  if (type === 'file') return (
+                    <>
                       <p className="text-sm text-slate-800 truncate max-w-[85%]">
                         <span className="font-medium">{msg.senderName}</span>: {msg.text}
                       </p>
+                      <FileText className="h-4 w-4 text-purple-500" />
+                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                        File • {originalName}
+                      </p>
+                    </>
+                  )
+
+                  if (type === 'video') return (
+                    <>
+                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                        <span className="font-medium">{msg.senderName}</span>: {msg.text}
+                      </p>
+                      <FileVideo className="h-4 w-4 text-purple-500" />
+                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                        Video • {originalName}
+                      </p>
+                    </>
+                  )
+
+                  if (type === 'image') return (
+                    <>
+                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                        <span className="font-medium">{msg.senderName}</span>: {msg.text}
+                      </p>
+                      <FileImage className="h-4 w-4 text-purple-500" />
+                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                        Image • {originalName}
+                      </p>
+                    </>
+                  )
+
+                  return null
+                })() : (
+                  <p className="text-sm text-slate-800 truncate">
+                    <span className="font-medium">{msg.senderName}</span>: {msg.text}
+                  </p>
+                )}
+              </div>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -282,6 +328,7 @@ const ChatWindow = ({
                 Unpin
               </button>
             </div>
+
           ))}
 
           {/* Toggle */}
@@ -296,7 +343,6 @@ const ChatWindow = ({
         </div>
       )}
 
-
       {/* Messages */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
         {messages.map((msg, i) => (
@@ -305,7 +351,7 @@ const ChatWindow = ({
               <div className={`max-w-md rounded-3xl shadow-md  
                 ${
                   msg.deleted
-                    ? 'bg-white text-slate-500 border border-slate-300 italic'
+                    ? 'bg-white text-slate-500 border border-slate-300 italic px-4 py-2'
                     : msg.attachments && msg.attachments.length > 0 && (msg.attachments[0].type === 'image' || msg.attachments[0].type === 'video')
                       ? ''
                       : msg.sender === currentUserId
@@ -313,7 +359,7 @@ const ChatWindow = ({
                         : 'bg-[rgb(240,240,240)] text-black shadow-slate-200/50 px-6 py-4 border border-slate-200/50'
                 }`}>
                   {msg.deleted ? (
-                    <p className="text-sm">This message has been recalled</p>
+                    <p className="text-sm">This message has been recalled.</p>
                   ) : msg.messageType === 'media' ? (
                     renderMediaMessage(msg)
                   ) : (
