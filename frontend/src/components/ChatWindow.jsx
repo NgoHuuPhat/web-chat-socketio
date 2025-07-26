@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Mic, X, Video, Download, FileVideo, FileImage, FileText, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2, Upload } from 'lucide-react'
+import { Send, Mic, X, Video, Loader2, Download, FileVideo, FileImage, FileText, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2, Upload } from 'lucide-react'
 import getTimeAgo from '../utils/getTimeAgo'
 import EmojiPicker from 'emoji-picker-react'
 import useClickOutside from '../hooks/useClickOutside'
@@ -15,6 +15,7 @@ const ChatWindow = ({
   pinnedMessages, 
   onPinMessage, 
   onUnpinMessage,
+  uploading
  }) => {
   const [newMessage, setNewMessage] = useState('')
   const [activeMessageMenu, setActiveMessageMenu] = useState(null)
@@ -76,6 +77,8 @@ const ChatWindow = ({
 
   // Handle send message with media
   const handleSendClick = () => {
+    if(uploading) return
+
     if(selectedFiles.length > 0) {
       // Prepare files for upload
       onSendMediaMessage(selectedFiles)
@@ -462,6 +465,12 @@ const ChatWindow = ({
           <div className="flex items-center space-x-2 mb-2">
             <Upload className="h-4 w-4 text-purple-600" />
             <span className="text-sm font-medium text-slate-700">Files to send ({selectedFiles.length})</span>
+            {uploading && (
+              <div className="flex items-center space-x-1">
+                <Loader2 className="h-4 w-4 text-purple-600 animate-spin" />
+                <span className="text-xs text-slate-700">Uploading...</span>
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedFiles.map((file, index) => (
@@ -492,6 +501,7 @@ const ChatWindow = ({
             {/* File Upload Button */}
             <button
               onClick={() => fileInputRef.current.click()}
+              disabled={uploading}
               className="p-3 hover:bg-slate-100 rounded-2xl transition-colors cursor-pointer"
             >
               <Paperclip className="h-5 w-5" />
@@ -500,6 +510,7 @@ const ChatWindow = ({
             {/* Image/Video Upload Button */}
             <button
               onClick={() => imageInputRef.current.click()}
+              disabled={uploading}
               className="p-3 hover:bg-slate-100 rounded-2xl transition-colors cursor-pointer"
             >
               <Image className="h-5 w-5" />
@@ -513,13 +524,13 @@ const ChatWindow = ({
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e)=>{
-                if (e.key === 'Enter' && newMessage.trim() || selectedFiles.length > 0) {
+                if ((e.key === 'Enter' && newMessage.trim() || selectedFiles.length > 0) && !uploading) {
                   handleSendClick()
                 }
               }}
             />
             <div className="absolute inset-y-0 flex item-centers right-4" ref={emojiPickerRef}>
-              <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+              <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} disabled={uploading}>
                 <Smile className={`h-5 cursor-pointer w-5 ${showEmojiPicker ? 'text-pink-700' : 'text-gray-500'}`} />
               </button>
 
@@ -536,18 +547,19 @@ const ChatWindow = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button className="p-3 hover:bg-slate-100 rounded-2xl transition-colors cursor-pointer">
+            <button className="p-3 hover:bg-slate-100 rounded-2xl transition-colors cursor-pointer" disabled={uploading}>
               <Mic className="h-5 w-5" />
             </button>
             <button
               onClick={()=>{
-                if (newMessage.trim() || selectedFiles.length > 0) {
+                if ((newMessage.trim() || selectedFiles.length > 0) && !uploading) {
                   handleSendClick()
                 }
               }}
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer"
+              disabled={uploading}
             >
-              <Send className="h-5 w-5" />
+              {uploading ? (<Loader2 className="h-5 w-5 animate-spin" />) : <Send className="h-5 w-5" />}
             </button>
           </div>
         </div>
