@@ -11,15 +11,18 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
+    "@wavesurfer/react": "^1.0.11",
     "dayjs": "^1.11.13",
     "emoji-picker-react": "^4.13.2",
     "lucide-react": "^0.525.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-media-recorder": "^1.7.1",
     "react-router-dom": "^7.6.3",
     "react-toastify": "^11.0.5",
     "tailwindcss": "^4.1.11",
-    "validator": "^13.15.15"
+    "validator": "^13.15.15",
+    "wavesurfer.js": "^7.10.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

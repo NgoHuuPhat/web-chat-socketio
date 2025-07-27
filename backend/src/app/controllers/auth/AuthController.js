@@ -217,6 +217,7 @@ class AuthController {
 
             // Send OTP to user's email
             const subject = 'Xác thực OTP lấy lại mật khẩu'
+            const text = `Mã OTP của bạn là: ${otp}. Mã sẽ hết hạn sau 3 phút.`
             const html = `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 8px;">
                     <h2 style="color: #007bff;">🔐 Xác thực OTP</h2>
@@ -227,7 +228,7 @@ class AuthController {
                     <p style="font-size: 12px; color: gray;">⚠️ Không chia sẻ mã với bất kỳ ai, kể cả nhân viên hỗ trợ.</p>
                 </div>
             `
-            await sendMailHelper.sendMail(email, subject, html)
+            await sendMailHelper.sendMail(email, subject, text, html)
 
             res.status(200).json({
                 message: 'OTP has been sent to your email. Please check your mailbox.',

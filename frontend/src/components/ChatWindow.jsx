@@ -3,6 +3,8 @@ import { Send, Mic, X, Video, Loader2, Download, FileVideo, FileImage, FileText,
 import getTimeAgo from '../utils/getTimeAgo'
 import EmojiPicker from 'emoji-picker-react'
 import useClickOutside from '../hooks/useClickOutside'
+import useAudioRecorder from '../hooks/useAudioRecorder'
+import AudioPlayer from './AudioPlayer'
 import { toast } from 'react-toastify'
 
 const ChatWindow = ({ 
@@ -24,6 +26,7 @@ const ChatWindow = ({
   const [selectedFiles, setSelectedFiles] = useState([])
   const [previewUrls, setPreviewUrls] = useState([])
   const [previewImage, setPreviewImage] = useState(null)
+  const [recordingTime, setRecordingTime] = useState(0)
 
   const messagesEndRef = useRef(null)
   const imageInputRef = useRef(null)
@@ -36,6 +39,27 @@ const ChatWindow = ({
   useClickOutside(emojiPickerRef, () => setShowEmojiPicker(false), showEmojiPicker)
   useClickOutside(messagesMenuRef, () => setActiveMessageMenu(null), activeMessageMenu !== null)
   useClickOutside(pinnedMessagesRef, () => setshowAllPinned(false), showAllPinned)
+
+  // Initialize audio recorder
+  const { status, startRecording, stopRecording, mediaBlobUrl, isRecording } = useAudioRecorder({
+    onStopRecording: (blob) => {
+      const audioFile = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' })
+      setSelectedFiles(prev => [...prev, audioFile])
+      setPreviewUrls(prev => [...prev, URL.createObjectURL(audioFile)])
+    }
+  })
+
+  useEffect(() => {
+    let timer
+    if (isRecording) {
+      timer = setInterval(() => {
+        setRecordingTime(prev => prev + 1)
+      }, 1000) 
+    } else {
+      setRecordingTime(0)
+    }
+    return () => clearInterval(timer)
+  }, [isRecording])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -111,6 +135,12 @@ const ChatWindow = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  const formatRecordingTime = (seconds) => {
+      const mins = Math.floor(seconds / 60)
+      const secs = seconds % 60
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`
+  }
+
   // Render media messages
   const renderMediaMessage = (msg) => {
     if (!msg.attachments || msg.attachments.length === 0) return null
@@ -138,10 +168,9 @@ const ChatWindow = ({
               </div>
             )}
             {attachment.type === 'audio' && (
-              <audio 
+              <AudioPlayer 
                 src={attachment.url}
-                controls
-                className="w-full max-w-sm"
+                className={msg.sender === currentUserId ? 'bg-purple-100' : 'bg-slate-100'}
               />
             )}
             {attachment.type === 'file' && (
@@ -308,6 +337,18 @@ const ChatWindow = ({
                       <FileImage className="h-4 w-4 text-purple-500" />
                       <p className="text-sm text-slate-800 truncate max-w-[85%]">
                         Image • {originalName}
+                      </p>
+                    </>
+                  )
+
+                  if (type === 'audio') return (
+                    <>
+                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                        <span className="font-medium">{msg.senderName}</span>: {msg.text}
+                      </p>
+                      <Mic className="h-4 w-4 text-purple-500" />
+                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                        Audio • {originalName}
                       </p>
                     </>
                   )
@@ -501,7 +542,7 @@ const ChatWindow = ({
             {/* File Upload Button */}
             <button
               onClick={() => fileInputRef.current.click()}
-              disabled={uploading}
+              disabled={uploading || isRecording}
               className="p-3 hover:bg-slate-100 rounded-2xl transition-colors cursor-pointer"
             >
               <Paperclip className="h-5 w-5" />
@@ -510,7 +551,7 @@ const ChatWindow = ({
             {/* Image/Video Upload Button */}
             <button
               onClick={() => imageInputRef.current.click()}
-              disabled={uploading}
+              disabled={uploading || isRecording}
               className="p-3 hover:bg-slate-100 rounded-2xl transition-colors cursor-pointer"
             >
               <Image className="h-5 w-5" />
@@ -520,12 +561,15 @@ const ChatWindow = ({
             <input
               type="text"
               className="w-full border border-slate-200/50 rounded-3xl px-6 py-2 bg-slate-100/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:bg-white transition-all duration-200 placeholder-slate-500"
-              placeholder="Type a message..."
+              placeholder={isRecording ? `${status}... (${formatRecordingTime(recordingTime)})` : 'Type a message...'}
               value={newMessage}
+              disabled={uploading || isRecording || selectedFiles.length > 0}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e)=>{
-                if ((e.key === 'Enter' && newMessage.trim() || selectedFiles.length > 0) && !uploading) {
-                  handleSendClick()
+                if (e.key === 'Enter' && !uploading && !isRecording) {
+                  if (newMessage.trim() || selectedFiles.length > 0) {
+                    handleSendClick();
+                  }
                 }
               }}
             />
@@ -547,7 +591,13 @@ const ChatWindow = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button className="p-3 hover:bg-slate-100 rounded-2xl transition-colors cursor-pointer" disabled={uploading}>
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`p-3 rounded-2xl transition-colors cursor-pointer ${
+                isRecording ? 'bg-red-500 hover:bg-red-400 text-white' : 'hover:bg-slate-100'
+              }`}
+              disabled={uploading}
+            >
               <Mic className="h-5 w-5" />
             </button>
             <button

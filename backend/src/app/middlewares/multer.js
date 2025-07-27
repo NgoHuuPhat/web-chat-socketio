@@ -10,8 +10,12 @@ const fileFilter = (req, file, cb) => {
 
         'video/mp4', 
 
+        'audio/webm',
         'audio/mpeg', 
         'audio/mp3', 
+        'audio/wav',
+        'audio/ogg',
+        'audio/x-m4a',
 
         'application/pdf',
         'text/plain',
