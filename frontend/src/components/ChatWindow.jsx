@@ -27,6 +27,7 @@ const ChatWindow = ({
   const [previewUrls, setPreviewUrls] = useState([])
   const [previewImage, setPreviewImage] = useState(null)
   const [recordingTime, setRecordingTime] = useState(0)
+  const [currentPlayingAudio, setCurrentPlayingAudio] = useState(null)
 
   const messagesEndRef = useRef(null)
   const imageInputRef = useRef(null)
@@ -171,6 +172,9 @@ const ChatWindow = ({
               <AudioPlayer 
                 src={attachment.url}
                 className={msg.sender === currentUserId ? 'bg-purple-100' : 'bg-slate-100'}
+                messageId={msg._id}
+                currentPlayingAudio={currentPlayingAudio}
+                setCurrentPlayingAudio={setCurrentPlayingAudio}
               />
             )}
             {attachment.type === 'file' && (
