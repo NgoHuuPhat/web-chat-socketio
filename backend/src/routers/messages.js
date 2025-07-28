@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const messageController = require('../app/controllers/user/MessageController')
-const upload = require('../app/middlewares/multer')
+const { upload, handleMulterError} = require('../app/middlewares/multer')
 const uploadCloudinary = require('../app/middlewares/uploadCloudinary')
 
 router.post('/', messageController.sendMessage)
@@ -14,6 +14,7 @@ router.post('/media',
         { name: 'file'  },
         { name: 'audio' },
     ]),
+    handleMulterError,
     uploadCloudinary,
     messageController.sendMediaMessage
 )

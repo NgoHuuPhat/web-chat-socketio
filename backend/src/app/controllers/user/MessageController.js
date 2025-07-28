@@ -241,8 +241,6 @@ class MessageController {
             conversation.lastMessageTime = new Date()
             await conversation.save()
 
-            console.log("📩 Media message sent successfully:", message)
-
             res.status(201).json(message)
         } catch (error) {
             console.error('Error sending media message:', error)

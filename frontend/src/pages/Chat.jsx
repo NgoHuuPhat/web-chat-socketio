@@ -4,7 +4,7 @@ import ChatWindow from '../components/ChatWindow'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, useParams } from 'react-router-dom'
-import { toast, Bounce } from 'react-toastify'
+import { toast } from 'react-toastify'
 
 const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null)
@@ -435,7 +435,7 @@ const Chat = () => {
         setUploading(false)
       } else {
         console.error('Failed to send media message:', data.message)
-        toast.error('Failed to send media')
+        toast.error(data.message)
       }
     } catch (error) {
       console.error('Error uploading media files:', error)

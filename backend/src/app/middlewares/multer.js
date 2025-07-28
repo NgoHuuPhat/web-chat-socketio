@@ -37,6 +37,29 @@ const fileFilter = (req, file, cb) => {
     }
 }
 
-const upload = multer({ storage, fileFilter })
+const upload = multer({ 
+    storage, 
+    fileFilter,
+    limits: {
+        fileSize: 100 * 1024 * 1024, // 100 MB limit
+    }
+ })
 
-module.exports = upload
+const handleMulterError = (err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ message: 'File size exceeds the limit of 100 MB.' })
+        }
+
+        return res.status(400).json({ message: `Multer error: ${err.message}` })
+    } else if (err) {
+        return res.status(500).json({ message: `Server error: ${err.message}` })
+    }
+
+    next()
+}
+
+module.exports = {
+    upload,
+    handleMulterError
+}
