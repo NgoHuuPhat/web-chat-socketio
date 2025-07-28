@@ -520,13 +520,21 @@ const ChatWindow = ({
           <div className="flex flex-wrap gap-2">
             {selectedFiles.map((file, index) => (
               <div key={index} className="relative group">
-                <div className="flex items-center space-x-2 bg-slate-100 rounded-lg p-2 pr-8 max-w-xs">
-                  {getFileIcon(file)}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-slate-700 truncate">{file.name}</p>
-                    <p className="text-xs text-slate-500">{formatFileSize(file.size)}</p>
+                { file.type.startsWith('image/') ? (
+                  <div className="relative w-15 h-15 rounded-lg overflow-hidden cursor-pointer" onClick={() => setPreviewImage(previewUrls[index])}>
+                    <img src={previewUrls[index]} alt={file.name} className="w-full h-full object-cover" />
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-lg rounded-lg py-2 cursor-pointer" onClick={() => handleDownload({ url: previewUrls[index], originalName: file.name })}>
+                    <div className="flex items-center space-x-2 bg-slate-100 rounded-lg p-2 pr-8 max-w-xs">
+                      {getFileIcon(file)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-slate-700 truncate">{file.name}</p>
+                        <p className="text-xs text-slate-500">{formatFileSize(file.size)}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <button
                   onClick={() => removeFile(index)}
                   className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 cursor-pointer"

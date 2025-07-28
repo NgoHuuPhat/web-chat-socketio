@@ -1,8 +1,8 @@
-import Header from '../components/Header'
-import Sidebar from '../components/Sidebar'
-import ChatWindow from '../components/ChatWindow'
+import Header from '@/components/Header'
+import Sidebar from '@/components/Sidebar'
+import ChatWindow from '@/components/ChatWindow'
 import { useEffect, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 
