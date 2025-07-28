@@ -121,6 +121,8 @@ const Chat = () => {
         resPinned.json(),
       ])
 
+      console.log('Messages:', messagesData)
+
       if (resMessages.ok) {
         const formattedMessages = messagesData.map((msg) => ({
           _id: msg._id,
@@ -130,9 +132,13 @@ const Chat = () => {
             hour: '2-digit',
             minute: '2-digit',
           }),
+          createdAt: msg.createdAt,
           deleted: msg.deleted || false,
           attachments: msg.attachments || [],
           messageType: msg.messageType || 'text',
+          status: msg.status || 'sent',
+          seenBy: msg.seenBy || [],
+          senderName: msg.senderId.fullName,
         }))
         setMessages(formattedMessages)
       } else {
@@ -216,6 +222,11 @@ const Chat = () => {
             _id: data.data._id,
             sender: user.id,
             text: data.data.content,
+            status: data.data.status || 'sent',
+            attachments: data.data.attachments || [],
+            messageType: data.data.messageType || 'text',
+            deleted: data.data.deleted || false,
+            createdAt: data.data.createdAt,
             time: new Date(data.data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }
 

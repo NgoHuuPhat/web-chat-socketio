@@ -32,9 +32,14 @@ const MessageSchema = new Schema(
             enum: ['text', 'media', 'system'],
             default: 'text'
         },
+        status: {
+            type: String,
+            enum: ['sent', 'received', 'seen'],
+            default: 'sent'
+        },
         seenBy: [{
             userId: { type: Schema.Types.ObjectId, ref: 'Account' },
-            seenAt: { type: Date, default: Date.now }
+            seenAt: { type: Date }
         }],
         
     },

@@ -207,11 +207,16 @@ class ConversationController {
 
             conversation.unreadCount.set(userId, 0)
             await conversation.save()
-            
-            res.status(200).json({ message: 'Messages marked as read successfully.' })
+
+            await Message.updateMany(
+                { conversationId, 'seenBy.userId': { $ne: userId }, senderId: { $ne: userId } },
+                { $push: { seenBy: { userId, seenAt: new Date() } } , $set: { status: 'seen' } }
+            )
+
+            res.status(200).json({ message: 'Messages marked as seen successfully.' })
         }
         catch (error) {
-            console.error('Error marking messages as read:', error)
+            console.error('Error marking messages as seen:', error)
             res.status(500).json({ message: 'Internal server error' })
         }
     }

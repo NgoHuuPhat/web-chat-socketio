@@ -1,6 +1,6 @@
 import  { useEffect, useState }  from 'react'
 import { UserPlus, Search, Users, Plus } from 'lucide-react'
-import getTimeAgo from '../utils/getTimeAgo'
+import { getTimeAgo } from '@/utils/formatTime'
 
 const Sidebar = ({ users, selectedConversation, conversations, currentUserId, onSelectConversation }) => {
   const [searchItem, setSearchItem] = useState('')

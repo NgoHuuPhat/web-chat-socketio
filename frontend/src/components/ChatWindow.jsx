@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Mic, X, Video, Loader2, Download, FileVideo, FileImage, FileText, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2, Upload } from 'lucide-react'
-import getTimeAgo from '../utils/getTimeAgo'
+import { getTimeAgo, formatSeenAt } from '@/utils/formatTime'
 import EmojiPicker from 'emoji-picker-react'
-import useClickOutside from '../hooks/useClickOutside'
-import useAudioRecorder from '../hooks/useAudioRecorder'
-import AudioPlayer from './AudioPlayer'
+import useClickOutside from '@/hooks/useClickOutside'
+import useAudioRecorder from '@/hooks/useAudioRecorder'
+import AudioPlayer from '@/components/AudioPlayer'
 import { toast } from 'react-toastify'
 
 const ChatWindow = ({ 
@@ -394,7 +394,7 @@ const ChatWindow = ({
       {/* Messages */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
         {messages.map((msg, i) => (
-          <div key={i} id={`message-${msg._id}`} className={`flex ${msg.sender === currentUserId ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
+          <div key={i} id={`message-${msg._id}`} className={`flex ${msg.sender === currentUserId ? 'justify-end' : 'justify-start'} animate-fade-in`}>
             <div className="relative">
               <div className={`max-w-md rounded-3xl shadow-md  
                 ${
@@ -428,7 +428,45 @@ const ChatWindow = ({
                     {msg.time}
                   </p>
               </div>
-              
+
+              {/* Message Status */}
+              {msg.sender === currentUserId && msg.status === 'sent' && msg.deleted === false && i === messages.length - 1 && (
+                console.log('Message sent:', msg),
+                <div className="absolute mt-1 right-2 text-xs text-black text-left w-max">
+                  <span className="w-full">Sent {getTimeAgo(msg.createdAt)}</span>
+                </div>
+              )}
+              {msg.sender === currentUserId && msg.status === 'seen' && msg.deleted === false && i === messages.length - 1 && (
+                <div className="flex items-center mt-2 space-x-1 justify-end">
+                  {msg.seenBy.slice(0, 5).map((user, index) => (
+                    <div key={index} className="group relative" title={user.userId.fullName} >
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-md bg-slate-400">
+                        {user.avatarUrl ? (
+                          <img
+                            src={user.avatarUrl}
+                            alt={user.userId.fullName}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          user.userId.fullName?.[0]?.toUpperCase() || '?'
+                        )}
+                      </div>
+                      <div className="absolute bottom-full mb-2 right-1
+                                      bg-gray-700 text-white text-xs rounded-lg px-2 py-1 
+                                      opacity-0 group-hover:opacity-100 
+                                      pointer-events-none transition-all duration-200 whitespace-nowrap z-10">
+                        <span>Seen by {user.userId.fullName} at {formatSeenAt(user.seenAt)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {msg.seenBy.length > 5 && (
+                    <div className="text-xs text-slate-500">
+                      +{msg.seenBy.length - 5} more
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Message Menu Button */}
               {!msg.deleted && (
                 <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} duration-200 z-10`}>

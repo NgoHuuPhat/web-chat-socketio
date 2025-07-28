@@ -51,7 +51,8 @@ class MessageController {
                 conversationId: conversation._id,
                 senderId,
                 content,
-                messageType: 'text'
+                messageType: 'text',
+                status: 'sent'
             })
 
 
@@ -75,7 +76,8 @@ class MessageController {
                     senderId: message.senderId,
                     content: message.content,
                     createdAt: message.createdAt,
-                    conversationId: conversation._id
+                    conversationId: conversation._id,
+                    status: message.status
                 }
             })  
         } catch (error) {
@@ -91,7 +93,10 @@ class MessageController {
             if (!conversationId) {
                 return res.status(400).json({ message: 'Conversation ID is required.' })
             }   
-            const messages = await Message.findWithDeleted({ conversationId })
+            const messages = await Message.findWithDeleted({ conversationId }).populate('seenBy.userId', 'fullName')
+            
+           console.log('Retrieved messages:', messages)
+
             res.status(200).json(messages)
         } catch (error) {
             console.error('Error retrieving messages:', error)
