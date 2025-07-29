@@ -8,7 +8,7 @@ const authMiddleware = require('../app/middlewares/authMiddleware')
 const authorMiddleware = require('../app/middlewares/authorMiddleware')
 
 function router(app) {
-    app.use('/api/users', authMiddleware, userRouter)
+    app.use('/api/users', userRouter)
     app.use('/api/conversations', authMiddleware, conversationRouter)
     app.use('/api/messages', authMiddleware, messageRouter)
     app.use('/api/auth', authRouter)

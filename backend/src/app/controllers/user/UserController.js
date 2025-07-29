@@ -17,7 +17,7 @@ class UserController {
         try {
             const search = req.query.q || ''
             const regex = new RegExp(search, 'i') 
-            const userId = req.user._id
+            const userId = req.user.id
 
             const users = await User.find({
                 fullName: regex,
@@ -31,6 +31,51 @@ class UserController {
             return res.status(500).json({ message: 'Internal server error' })
         }
     }
+
+    // [GET] /api/users/:slug
+    async getProfileBySlug(req, res) {
+        try {
+
+            const user = await User.findOne({slug: req.query.slug})
+
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' })
+            }
+
+            if(user.status === 'inactive') {
+                return res.status(403).json({ message: 'Your account is inactive' })
+            }
+
+            res.status(200).json(user)
+
+        } catch (error) {
+           console.error('Error fetching user profile:', error)
+           return res.status(500).json({ message: 'Internal server error' }) 
+        }
+    }
+
+    // [PATCH] /api/users/profile
+    async updateProfile(req, res) {
+        try {
+
+            const dataUpdate = {
+                fullName: req.body.fullName.trim(),
+                phone: req.body.phone.trim(),
+                avatar: req.uploadResults ? req.uploadResults.secure_url : process.env.DEFAULT_AVATAR,
+            }
+
+            const updatedUser = await User.findOneAndUpdate({ _id: req.user.id }, dataUpdate, { new: true })
+
+            res.status(200).json({
+                message: 'Profile updated successfully',
+                user: updatedUser
+            })
+        } catch (error) {
+           console.error('Error updating user profile:', error)
+           return res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+ 
 }
 
 module.exports = new UserController();

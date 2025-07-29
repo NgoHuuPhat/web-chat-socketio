@@ -3,6 +3,13 @@ const { uploadToCloudinary } = require('../../utils/cloudinary')
 module.exports = function (req, res, next) {
     const processUploads = async (req, res, next) => {
         try {
+            if (req.file) {
+                console.log(`  🔄 Uploading single file: ${req.file.originalname}`)
+                const result = await uploadToCloudinary(req.file)
+                req.uploadResults = result
+                return next()
+            }
+
             if (!req.files || Object.keys(req.files).length === 0) {
                 return res.status(400).json({ message: 'No files uploaded.' })
             }

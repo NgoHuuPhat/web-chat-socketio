@@ -31,6 +31,7 @@ const fileFilter = (req, file, cb) => {
     ]
 
     if (allowedTypes.includes(file.mimetype)) {
+        console.log(`✅ File accepted: ${file.originalname} (${file.mimetype})`)
         cb(null, true) 
     } else {
         cb(new Error('Unsupported file type'), false) 
