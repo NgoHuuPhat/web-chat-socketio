@@ -121,8 +121,6 @@ const Chat = () => {
         resPinned.json(),
       ])
 
-      console.log('Messages:', messagesData)
-
       if (resMessages.ok) {
         const formattedMessages = messagesData.map((msg) => ({
           _id: msg._id,

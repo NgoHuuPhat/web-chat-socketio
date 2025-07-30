@@ -16,6 +16,7 @@ const AccountSchema = new Schema(
          },
         phone: { type: String },
         avatar: { type: String, default: process.env.DEFAULT_AVATAR },
+        bio: { type: String },
         roleId: { type : mongoose.Schema.ObjectId, ref: 'Role', required: true }, 
         status: { type: String, required: true, enum: ['active', 'inactive'], default: 'active' },
         loginType: { type: String, enum:['local','google','facebook'], required: true, default: 'local' },

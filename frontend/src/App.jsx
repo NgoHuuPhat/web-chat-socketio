@@ -8,6 +8,7 @@ import VerifyOTP from '@/pages/VerifyOTP'
 import ResetPassword from '@/pages/ResetPassword'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import PublicOnlyRoute from '@/components/PublicOnlyRoute'
+import Profile from '@/pages/Profile'
 
 import { ToastContainer, Bounce } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -22,6 +23,7 @@ const App = () => {
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/messages/:conversationId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/profile/:slug" element={<Profile />} />
         <Route path="/" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
       </Routes>
 

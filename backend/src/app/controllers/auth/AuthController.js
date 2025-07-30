@@ -95,6 +95,7 @@ class AuthController {
                 fullName: checkEmail.fullName,
                 avatar: checkEmail.avatar,
                 roleId: checkEmail.roleId,
+                slug: checkEmail.slug,
             }
 
             // RememberMe = true/false
@@ -129,6 +130,7 @@ class AuthController {
                     avatar: checkEmail.avatar,
                     roleId: checkEmail.roleId,
                     roleName: role.name,
+                    slug: checkEmail.slug,
                 },
             })
         } catch (error) {
@@ -180,6 +182,7 @@ class AuthController {
                 fullName: decode.fullName,
                 avatar: decode.avatar,
                 roleId: decode.roleId,
+                slug: decode.slug,
             }
 
             const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -341,6 +344,7 @@ class AuthController {
                 email: user.email,
                 avatar: user.avatar,
                 roleId: user.roleId._id,
+                slug: user.slug,
             })
        } catch (error) {
             console.error('Check auth error:', error)

@@ -21,7 +21,6 @@ export const AuthProvider = ({ children }) => {
                 }
 
                 setUser(data)
-
             } catch (error) {
                 setUser(null)
                 console.error('Error fetching user data:', error)

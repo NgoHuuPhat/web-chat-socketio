@@ -20,6 +20,11 @@ const formatSeenAt = (timestamp) => {
     }
 }
 
-export { getTimeAgo, formatSeenAt }
+const formatTime = (timestamp) => {
+    const time = dayjs(timestamp)
+    return time.format('DD/MM/YYYY')
+}
+
+export { getTimeAgo, formatSeenAt, formatTime }
 
 
