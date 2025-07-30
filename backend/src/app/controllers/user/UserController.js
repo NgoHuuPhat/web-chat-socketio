@@ -36,11 +36,16 @@ class UserController {
     async getProfileBySlug(req, res) {
         try {
 
-            const user = await User.findOne({slug: req.query.slug})
+            const slug = req.params.slug
+            const user = await User.findOne({ slug }).populate('roleId', 'name')
 
             if (!user) {
                 return res.status(404).json({ message: 'User not found' })
             }
+
+            if(user.roleId.name === 'admin') {
+                return res.status(403).json({ message: 'Access denied' })
+            }  
 
             if(user.status === 'inactive') {
                 return res.status(403).json({ message: 'Your account is inactive' })
@@ -58,10 +63,22 @@ class UserController {
     async updateProfile(req, res) {
         try {
 
-            const dataUpdate = {
-                fullName: req.body.fullName.trim(),
-                phone: req.body.phone.trim(),
-                avatar: req.uploadResults ? req.uploadResults.secure_url : process.env.DEFAULT_AVATAR,
+            const dataUpdate = {...req.body}
+
+            if (req.body.fullName) {
+                dataUpdate.fullName = req.body.fullName.trim()
+            }
+
+            if (req.body.phone) {
+                dataUpdate.phone = req.body.phone.trim()
+            }
+
+            if(req.uploadResults){
+                dataUpdate.avatar = req.uploadResults.secure_url
+            }
+
+            if(Object.keys(dataUpdate).length === 0) {
+                return res.status(400).json({ message: 'No data to update' })
             }
 
             const updatedUser = await User.findOneAndUpdate({ _id: req.user.id }, dataUpdate, { new: true })
@@ -75,7 +92,6 @@ class UserController {
            return res.status(500).json({ message: 'Internal server error' })
         }
     }
- 
 }
 
 module.exports = new UserController();
