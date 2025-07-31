@@ -5,6 +5,7 @@ const authMiddleware = require('../app/middlewares/authMiddleware')
 const { upload, handleMulterError} = require('../app/middlewares/multer')
 const uploadCloudinary = require('../app/middlewares/uploadCloudinary')
 
+router.patch('/change-password', authMiddleware, userController.changePassword)
 router.patch('/profile', authMiddleware, upload.single('avatar'), handleMulterError, uploadCloudinary, userController.updateProfile)
 router.get('/search', authMiddleware, userController.searchUsers)
 router.get('/', authMiddleware, userController.getUsers)

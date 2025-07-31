@@ -1,4 +1,5 @@
 const User = require('../../models/Account')
+const bcrypt = require('bcrypt')
 
 class UserController {
     // [GET] /api/users
@@ -62,7 +63,6 @@ class UserController {
     // [PATCH] /api/users/profile
     async updateProfile(req, res) {
         try {
-
             const dataUpdate = {...req.body}
 
             if (req.body.fullName) {
@@ -84,9 +84,20 @@ class UserController {
             if(req.body.location){
                 dataUpdate.location = req.body.location.trim()
             }
-
+            
             if(req.body.birthDate) {
-                dataUpdate.birthDate = new Date(req.body.birthDate)
+            const birthDate = new Date(req.body.birthDate)
+            const now = new Date()
+
+                if (isNaN(birthDate.getTime())) {
+                    return res.status(400).json({ message: 'Invalid birth date format' })
+                }
+
+                if( birthDate > now) {
+                    return res.status(400).json({ message: 'Birth date cannot be in the future' })
+                }
+
+                dataUpdate.birthDate = req.body.birthDate
             }
 
             if(Object.keys(dataUpdate).length === 0) {
@@ -102,6 +113,38 @@ class UserController {
         } catch (error) {
            console.error('Error updating user profile:', error)
            return res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [PATCH] /api/users/change-password
+    async changePassword(req, res) {
+        try {
+            const { currentPassword, newPassword } = req.body
+
+            if (!currentPassword || !newPassword) {
+                return res.status(400).json({ message: 'Current password and new password are required' })
+            }
+
+            if(currentPassword === newPassword) {
+                return res.status(400).json({ message: 'New password must be different from current password' })
+            }
+
+            const user = await User.findById(req.user.id)
+
+            const isMatch = await bcrypt.compare(currentPassword, user.password)
+            if (!isMatch) {
+                return res.status(400).json({ message: 'Current password is incorrect' })
+            }
+
+            const hashedPassword = await bcrypt.hash(newPassword, 10)
+            user.password = hashedPassword
+            await user.save()
+
+            res.status(200).json({ message: 'Password changed successfully' })
+
+        } catch (error) {
+            console.error('Error changing password:', error)
+            return res.status(500).json({ message: 'Internal server error' })
         }
     }
 }

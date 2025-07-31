@@ -88,7 +88,11 @@
                           <span>Profile</span>
                         </Link>
                       </li>
-                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">Change Password</li>
+                      <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                        <Link to={`/change-password`} className="flex items-center space-x-2">
+                          <span>Change Password</span>
+                        </Link>
+                      </li>
                       <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">Settings</li>
                       <li onClick={handleLogout} className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600">Log out</li>
                     </ul>

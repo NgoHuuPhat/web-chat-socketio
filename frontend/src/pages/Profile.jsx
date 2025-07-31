@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { MapPin, User, Calendar, Edit2, Phone, Mail, LoaderCircle, Save, X } from 'lucide-react'
+import { toast } from 'react-toastify'
+import validator from 'validator'
 import { useParams } from 'react-router-dom'
 import { formatTime } from '@/utils/formatTime'
 import Avatar from '@/components/Avatar'
@@ -11,6 +13,7 @@ const Profile = () => {
   const { slug } = useParams()
   const [isEditing, setIsEditing] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
   const [userInfo, setUserInfo] = useState({})
   const imageInputRef = useRef(null)
 
@@ -33,11 +36,8 @@ const Profile = () => {
     }
   }, [slug])
 
-  useEffect(() => {
-    console.log('userInfo updated:', userInfo)
-  }, [userInfo])
-
   const handleInputChange = (field, value) => {
+    setError(null)
     setUserInfo(prev => ({ ...prev, [field]: value }))
   }
 
@@ -71,6 +71,11 @@ const Profile = () => {
   }
 
   const handleSaveChanges = async () => {
+    if(!validator.isMobilePhone(userInfo.phone, 'vi-VN')){
+      setError('Invalid phone number format')
+      return
+    }
+
     try {
       const res = await fetch('http://localhost:3000/api/users/profile', {
         method: 'PATCH',
@@ -81,10 +86,10 @@ const Profile = () => {
         credentials: 'include',
       })
       const data = await res.json()
-      console.log('Save changes response:', data)
 
       if (!res.ok) {
         console.error('Failed to save changes:', data.message)  
+        return toast.error(data.message || 'Failed to save changes')
       }
 
       setUserInfo(data.user)
@@ -154,7 +159,7 @@ const Profile = () => {
                 </div>
                 <div className="flex items-center gap-3 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full backdrop-blur-sm border border-purple-200/50 shadow-lg shadow-purple-200/30">
                   <Calendar className="w-5 h-5 text-purple-600" />
-                  <span className="text-slate-800 font-medium">Joined {formatTime(userInfo.createdAt)}</span>
+                  <span className="text-slate-800 font-medium">Birth date: {formatTime(userInfo.birthDate)}</span>
                 </div>
               </div>
 
@@ -209,6 +214,8 @@ const Profile = () => {
                     value={userInfo.email}
                     type="email"
                     icon={Mail}
+                    isEditing={isEditing}
+                    disabled={true}
                   />
                   <FormField
                     label="Phone Number"
@@ -217,6 +224,7 @@ const Profile = () => {
                     isEditing={isEditing}
                     type="tel"
                     icon={Phone}
+                    error={error}
                   />
                 </div>
 
@@ -228,13 +236,15 @@ const Profile = () => {
                     isEditing={isEditing}
                     icon={MapPin}
                   />
-                  <div className="space-y-3">
-                    <label className="text-slate-700 font-semibold text-sm uppercase tracking-wider">Join Date</label>
-                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl backdrop-blur-sm border border-indigo-200/50 shadow-sm">
-                      <Calendar className="w-5 h-5 text-indigo-600" />
-                      <span className="text-slate-800 font-semibold">{formatTime(userInfo.createdAt)}</span>
-                    </div>
-                  </div>
+                  <FormField
+                    label="Join Date"
+                    type="date"
+                    value={formatTime(userInfo.joinDate)}
+                    onChange={value => handleInputChange('joinDate', value)}
+                    isEditing={isEditing}
+                    icon={Calendar}
+                    disabled={true}
+                  />
                   <FormField
                     label="Birthday"
                     type="date"
