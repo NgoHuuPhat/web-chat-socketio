@@ -16,13 +16,13 @@ const formatSeenAt = (timestamp) => {
     if(seen.isToday()) {
         return seen.format('HH:mm')
     } else {
-          return seen.format('HH:mm DD/MM/YYYY')
+          return seen.format('HH:mm YYYY-MM-DD')
     }
 }
 
 const formatTime = (timestamp) => {
     const time = dayjs(timestamp)
-    return time.format('DD/MM/YYYY')
+    return time.format('YYYY-MM-DD')
 }
 
 export { getTimeAgo, formatSeenAt, formatTime }

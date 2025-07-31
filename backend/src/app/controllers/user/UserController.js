@@ -77,6 +77,18 @@ class UserController {
                 dataUpdate.avatar = req.uploadResults.secure_url
             }
 
+            if(req.body.bio){
+                dataUpdate.bio = req.body.bio.trim()
+            }
+
+            if(req.body.location){
+                dataUpdate.location = req.body.location.trim()
+            }
+
+            if(req.body.birthDate) {
+                dataUpdate.birthDate = new Date(req.body.birthDate)
+            }
+
             if(Object.keys(dataUpdate).length === 0) {
                 return res.status(400).json({ message: 'No data to update' })
             }

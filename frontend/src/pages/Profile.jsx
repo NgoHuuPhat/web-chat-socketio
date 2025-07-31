@@ -159,7 +159,7 @@ const Profile = () => {
               </div>
 
               {userInfo.bio && (
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 backdrop-blur-sm border border-indigo-200/50 shadow-lg shadow-indigo-200/20">
+                <div className="break-words break-all bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 backdrop-blur-sm border border-indigo-200/50 shadow-lg shadow-indigo-200/20">
                   <p className="text-slate-700 leading-relaxed font-medium">{userInfo.bio}</p>
                 </div>
               )}
@@ -207,8 +207,6 @@ const Profile = () => {
                   <FormField
                     label="Email"
                     value={userInfo.email}
-                    
-                    isEditing={isEditing}
                     type="email"
                     icon={Mail}
                   />
@@ -226,7 +224,7 @@ const Profile = () => {
                   <FormField
                     label="Location"
                     value={userInfo.location}
-                    
+                    onChange={value => handleInputChange('location', value)}
                     isEditing={isEditing}
                     icon={MapPin}
                   />
@@ -237,13 +235,14 @@ const Profile = () => {
                       <span className="text-slate-800 font-semibold">{formatTime(userInfo.createdAt)}</span>
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <label className="text-slate-700 font-semibold text-sm uppercase tracking-wider">Status</label>
-                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl backdrop-blur-sm border border-green-200/50 shadow-sm">
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                      <span className="text-green-600 font-semibold capitalize">{userInfo.status}</span>
-                    </div>
-                  </div>
+                  <FormField
+                    label="Birthday"
+                    type="date"
+                    value={formatTime(userInfo.birthDate)}
+                    onChange={value => handleInputChange('birthDate', value)}
+                    isEditing={isEditing}
+                    icon={Calendar}
+                  />
                 </div>
               </div>
 
