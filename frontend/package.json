@@ -20,6 +20,7 @@
     "react-media-recorder": "^1.7.1",
     "react-router-dom": "^7.6.3",
     "react-toastify": "^11.0.5",
+    "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.11",
     "validator": "^13.15.15",
     "wavesurfer.js": "^7.10.1"

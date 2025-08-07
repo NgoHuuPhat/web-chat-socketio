@@ -5,6 +5,8 @@ const db = require('./config/db')
 const router = require('./routers/index')
 const cookieParser = require('cookie-parser')
 const cors = require('cors')
+const http = require('http')
+const setupSocket = require('./sockets/server')
 
 // Connect to DB
 db.connect()
@@ -24,6 +26,11 @@ app.use(express.json())
 // Router
 router(app)
 
-app.listen(process.env.PORT, () => {
+const server = http.createServer(app)
+
+// Setup Socket.io
+setupSocket(server)
+
+server.listen(process.env.PORT, () => {
     console.log(`Server is running on port http://localhost:${process.env.PORT}`)
 })

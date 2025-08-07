@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { initializeSocket } from '@/sockets'
 
 const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null)
@@ -14,9 +15,89 @@ const Chat = () => {
   const [pinnedMessages, setPinnedMessages] = useState([])
   const [uploading, setUploading] = useState(false)
   const { user } = useAuth()
+  const socket = initializeSocket()
 
   const { conversationId } = useParams()
   const navigate = useNavigate()
+
+  // Tham gia tất cả các phòng socket
+  useEffect(() => {
+    if (!socket || !conversations.length) return;
+
+    conversations.forEach((conversation) => {
+      socket.emit('join_conversation', conversation._id);
+      console.log('Joined conversation room:', conversation._id);
+    });
+
+    return () => {
+      conversations.forEach((conversation) => {
+        socket.emit('leave_conversation', conversation._id);
+        console.log('Left conversation room:', conversation._id);
+      });
+    };
+  }, [socket, conversations]);
+
+  // socket event listeners
+  useEffect(() => {
+    if (!socket || !selectedConversation) return
+
+    const handleReceiveMessage = (message) => {
+      const formattedMessage = {
+         _id: message._id,
+        sender: message.sender,
+        text: message.text || message.content || '',
+        time: message.time || new Date().toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        createdAt: message.createdAt || new Date().toISOString(),
+        deleted: message.deleted || false,
+        attachments: message.attachments || [],
+        messageType: message.messageType || 'text',
+        status: message.status || 'sent',
+        seenBy: message.seenBy || [],
+        senderName: message.senderName || 'Unknown'
+      }
+      // Update messages state with the new message
+      if( selectedConversation && selectedConversation._id === message.conversationId) {
+        setMessages(prevMessages => [...prevMessages, formattedMessage])
+      }
+
+      // Update conversations state when a new message is received
+      setConversations(prevConversations => {
+        const updatedConversations = prevConversations.map(conversation => {
+          if (conversation._id === message.conversationId) {
+            return {
+              ...conversation,
+              lastMessage: {
+                content: formattedMessage.text,
+                senderId: formattedMessage.sender,
+                createdAt: formattedMessage.createdAt,
+              },
+              unreadCount: {
+                ...conversation.unreadCount,
+                [user.id]: (conversation.unreadCount?.[user.id] || 0) + 1,
+              }
+            }
+          }
+          return conversation
+        })
+
+        return [
+          updatedConversations.find(c => c._id === message.conversationId),
+          ...updatedConversations.filter(c => c._id !== message.conversationId)
+        ]
+      })
+
+    }
+
+    // Register the socket event listener
+    socket.on('receive_message', handleReceiveMessage)
+
+    return () => {
+      socket.off('receive_message', handleReceiveMessage)
+    }
+  }, [socket, selectedConversation, user.id])
 
   // get all users
   useEffect(() => {
@@ -55,6 +136,7 @@ const Chat = () => {
           credentials: 'include', 
         })
         const data = await res.json() 
+        console.log('Conversations data:', data)
         if (res.ok) {
           setConversations(data)
         } else {
@@ -101,6 +183,9 @@ const Chat = () => {
     setSelectedConversation(conversation)
     setMessages([])
     setPinnedMessages([])
+
+    // Join the conversation room in socket
+    socket.emit('join_conversation', conversation._id)
 
     try {
       const [resMessages, resPinned] = await Promise.all([
@@ -172,6 +257,8 @@ const Chat = () => {
 
   // If conversationId is provided in URL, select that conversation
   useEffect(() => {
+    if(!conversations.length || !socket) return
+
     if (conversationId && conversations.length > 0) {
       const conversation = conversations.find(c => c._id === conversationId)
 
@@ -179,7 +266,7 @@ const Chat = () => {
         handleSelectConversation(conversation)
       }
 
-    } else if (!conversationId && !selectedConversation && conversations.length > 0) {
+    } else if (!selectedConversation && conversations.length > 0) {
       handleSelectConversation(conversations[0])
     }
   }, [conversationId, conversations])
@@ -229,6 +316,12 @@ const Chat = () => {
           }
 
           setMessages(prevMessages => [...prevMessages, newMessage])
+
+          // Emit the message to the socket
+          socket.emit('send_message', {
+            conversationId: selectedConversation._id,
+            ...newMessage,
+          })
 
           setConversations(prevConversations => {
             const updatedConversations = prevConversations.map(conversation => {
