@@ -20,22 +20,6 @@ const Chat = () => {
   const { conversationId } = useParams()
   const navigate = useNavigate()
 
-  // Tham gia tất cả các phòng socket
-  useEffect(() => {
-    if (!socket || !conversations.length) return;
-
-    conversations.forEach((conversation) => {
-      socket.emit('join_conversation', conversation._id);
-      console.log('Joined conversation room:', conversation._id);
-    });
-
-    return () => {
-      conversations.forEach((conversation) => {
-        socket.emit('leave_conversation', conversation._id);
-        console.log('Left conversation room:', conversation._id);
-      });
-    };
-  }, [socket, conversations]);
 
   // socket event listeners
   useEffect(() => {
@@ -76,7 +60,7 @@ const Chat = () => {
               },
               unreadCount: {
                 ...conversation.unreadCount,
-                [user.id]: (conversation.unreadCount?.[user.id] || 0) + 1,
+                [user.id]: selectedConversation._id === message.conversationId ? 0 : (conversation.unreadCount[user.id] || 0) + 1,
               }
             }
           }
@@ -88,15 +72,48 @@ const Chat = () => {
           ...updatedConversations.filter(c => c._id !== message.conversationId)
         ]
       })
+    }
 
+    const handleNewMessageNotification = ( message ) => {
+      console.log('New message notification:', message)
+      setConversations(prevConversations => {
+        const updatedConversations = prevConversations.map(conversation => {
+          if (conversation._id === message.conversationId) {
+            return {
+              ...conversation,
+              lastMessage: {
+                content: message.text || message.content || '',
+                senderId: message.sender,
+                createdAt: message.createdAt,
+              },
+              unreadCount: {
+                ...conversation.unreadCount,
+                [user.id]: selectedConversation._id === message.conversationId ? 0 : (conversation.unreadCount[user.id] || 0) + 1,
+              },
+            }
+          }
+
+          return conversation
+        })
+
+        return [
+          updatedConversations.find(c => c._id === message.conversationId),
+          ...updatedConversations.filter(c => c._id !== message.conversationId)
+        ]
+      })
     }
 
     // Register the socket event listener
     socket.on('receive_message', handleReceiveMessage)
 
+    // Register the new message notification listener
+    socket.on('new_message_notification', handleNewMessageNotification)
+
     return () => {
       socket.off('receive_message', handleReceiveMessage)
+      socket.off('new_message_notification', handleNewMessageNotification)
     }
+    
   }, [socket, selectedConversation, user.id])
 
   // get all users
@@ -111,6 +128,7 @@ const Chat = () => {
             credentials: 'include', 
           })
           const data = await res.json()
+          console.log('Fetched users:', data)
           if (res.ok) {
             setUsers(data)
           } else {
@@ -136,7 +154,6 @@ const Chat = () => {
           credentials: 'include', 
         })
         const data = await res.json() 
-        console.log('Conversations data:', data)
         if (res.ok) {
           setConversations(data)
         } else {
@@ -178,6 +195,11 @@ const Chat = () => {
   // Handle selecting a conversation
   const handleSelectConversation = async (conversation) => {
     if (!conversation) return
+
+    // Leave the previous conversation room if any
+    if (selectedConversation) {
+      socket.emit('leave_conversation', selectedConversation._id)
+    }
 
     navigate(`/messages/${conversation._id}`)
     setSelectedConversation(conversation)
@@ -257,17 +279,20 @@ const Chat = () => {
 
   // If conversationId is provided in URL, select that conversation
   useEffect(() => {
-    if(!conversations.length || !socket) return
+    if(!conversations.length) return
 
-    if (conversationId && conversations.length > 0) {
-      const conversation = conversations.find(c => c._id === conversationId)
-
-      if (conversation && (!selectedConversation || selectedConversation._id !== conversation._id)) {
-        handleSelectConversation(conversation)
-      }
-
-    } else if (!selectedConversation && conversations.length > 0) {
+    if(!conversationId && !selectedConversation) {
       handleSelectConversation(conversations[0])
+      return
+    }
+
+    if(conversationId){
+      const conversation = conversations.find(c => c._id === conversationId)
+      if(conversation && (!selectedConversation || selectedConversation._id !== conversationId)) { 
+        handleSelectConversation(conversation)
+      } else if(!conversation) {
+        handleSelectConversation(conversations[0])
+      }
     }
   }, [conversationId, conversations])
 

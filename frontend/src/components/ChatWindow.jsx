@@ -431,7 +431,6 @@ const ChatWindow = ({
 
               {/* Message Status */}
               {msg.sender === currentUserId && msg.status === 'sent' && msg.deleted === false && i === messages.length - 1 && (
-                console.log('Message sent:', msg),
                 <div className="absolute mt-1 right-2 text-xs text-black text-left w-max">
                   <span className="w-full">Sent {getTimeAgo(msg.createdAt)}</span>
                 </div>
