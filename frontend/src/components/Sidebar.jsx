@@ -174,7 +174,8 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                         if (isGroup) {
                             displayName = conversation.groupName || 'Unnamed Group'
                         } else {
-                            const partner = conversation.members.find(member => member._id !== currentUserId)
+                            const partnerId = conversation.members.find(member => member._id !== currentUserId)?._id
+                            const partner = users.find(user => user._id === partnerId)
                             if (partner) {
                                 displayName = partner.fullName
                                 isOnline = partner.isOnline

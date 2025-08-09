@@ -8,6 +8,7 @@ import AudioPlayer from '@/components/AudioPlayer'
 import { toast } from 'react-toastify'
 
 const ChatWindow = ({ 
+  users,
   selectedConversation, 
   currentUserId, 
   messages, 
@@ -245,7 +246,9 @@ const ChatWindow = ({
   }
 
   const isGroup = selectedConversation.isGroup
-  const otherUser = isGroup ? null : selectedConversation.members.find(m => m._id !== currentUserId)
+  const otherUserId = isGroup ? null : selectedConversation.members.find(m => m._id !== currentUserId)?._id
+  const otherUser = users.find(u => u._id === otherUserId)
+
   const displayName = isGroup ? selectedConversation.groupName : otherUser?.fullName || 'Unknown'
   const displayColor = isGroup ? 'bg-gradient-to-r from-purple-500 to-pink-500' : otherUser?.color || 'bg-slate-400'
   const isOnline = isGroup ? false : otherUser?.isOnline

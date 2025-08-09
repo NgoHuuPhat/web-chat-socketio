@@ -11,6 +11,9 @@ const setupSocket = (server) => {
         },
     })
 
+    // Map user online
+    const onlineUsers = new Map()   
+
     // Middleware to authenticate the user using JWT from cookies
     io.use((socket, next) => {
         try {
@@ -30,12 +33,30 @@ const setupSocket = (server) => {
     })
 
     io.on('connection', (socket) => {
-        console.log(`User connected: ${socket.id}`)
-        socket.join(socket.user.id.toString()) 
-        chatHandler(io, socket)
+        const userId = socket.user.id.toString()
+        socket.join(userId)
 
+        if(!onlineUsers.has(userId)) onlineUsers.set(userId, new Set())
+        onlineUsers.get(userId).add(socket.id)
+
+        if(onlineUsers.get(userId).size === 1) {
+            socket.broadcast.emit('user_online', { userId })
+        }
+
+        console.log('onlineUsers', onlineUsers)
+
+        chatHandler(io, socket)
         socket.on('disconnect', () => {
-            console.log(`User disconnected: ${socket.id}`)
+            if(!onlineUsers.get(userId)) return
+
+            onlineUsers.get(userId).delete(socket.id)
+            if(onlineUsers.get(userId).size === 0){
+                onlineUsers.delete(userId)
+                socket.broadcast.emit('user_offline', { userId })
+            }
+
+            console.log('offlineUsers', onlineUsers)
+
         })
     })
 

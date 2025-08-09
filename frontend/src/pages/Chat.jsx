@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { initializeSocket } from '@/sockets'
 
 const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null)
@@ -14,8 +13,7 @@ const Chat = () => {
   const [conversations, setConversations] = useState([])
   const [pinnedMessages, setPinnedMessages] = useState([])
   const [uploading, setUploading] = useState(false)
-  const { user } = useAuth()
-  const socket = initializeSocket()
+  const { user, socket } = useAuth()
 
   const { conversationId } = useParams()
   const navigate = useNavigate()
@@ -116,6 +114,38 @@ const Chat = () => {
     
   }, [socket, selectedConversation, user.id])
 
+  useEffect(() => {
+    if (!socket) return
+
+    const handleOnlineUser = ({ userId }) => {
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user._id === userId ? { ...user, isOnline: true } : user
+        )
+      )
+    }
+
+    const handleOfflineUser = ({ userId }) => {
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user._id === userId ? { 
+            ...user, 
+            isOnline: false,
+            lastOnline: user.lastOnline || new Date().toISOString()
+           } : user
+        )
+      )
+    }
+
+    socket.on('user_online', handleOnlineUser)
+    socket.on('user_offline', handleOfflineUser)
+
+    return () => {
+      socket.off('user_online', handleOnlineUser)
+      socket.off('user_offline', handleOfflineUser)
+    }
+  }, [socket])
+
   // get all users
   useEffect(() => {
     const fetchUsers = async () => {
@@ -128,7 +158,6 @@ const Chat = () => {
             credentials: 'include', 
           })
           const data = await res.json()
-          console.log('Fetched users:', data)
           if (res.ok) {
             setUsers(data)
           } else {
@@ -583,6 +612,7 @@ const Chat = () => {
           onSelectConversation={handleSelectConversation} 
         />
         <ChatWindow 
+          users={users}
           selectedConversation={selectedConversation} 
           messages={messages} 
           currentUserId={user.id}

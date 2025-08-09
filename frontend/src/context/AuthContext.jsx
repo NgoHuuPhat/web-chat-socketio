@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { io } from 'socket.io-client'
 
 const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [socket, setSocket] = useState(null)
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -32,8 +34,31 @@ export const AuthProvider = ({ children }) => {
         fetchUser()
     }, [])
 
+    // Socket connection
+    useEffect(() => {
+        if(!user) {
+            if(socket) {
+                socket.disconnect()
+                setSocket(null)
+            }
+            return
+        }
+
+        const newSocket = io('http://localhost:3000', {
+            transports: ['websocket'],
+            withCredentials: true
+        })
+
+        setSocket(newSocket)
+
+        return () => {
+            newSocket.disconnect()
+            setSocket(null)
+        }
+    }, [user])
+
     return (
-        <AuthContext.Provider value={{ user, setUser, loading }}>
+        <AuthContext.Provider value={{ user, setUser, loading, socket }}>
             {children}
         </AuthContext.Provider>
     )
