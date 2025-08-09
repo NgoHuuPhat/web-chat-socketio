@@ -2,12 +2,10 @@ const Conversation = require('../../app/models/Conversation')
 
 module.exports = (io, socket) => {
     socket.on('join_conversation', (conversationId) => {
-        console.log(`User ${socket.id} joined conversation: ${conversationId}`)
         socket.join(conversationId)
     })
     
     socket.on('leave_conversation', (conversationId) => {
-        console.log(`User ${socket.id} left conversation: ${conversationId}`)
         socket.leave(conversationId)
     })
 

@@ -221,7 +221,6 @@ class MessageController {
                     attachments.push(attachment)
                 }
             }
-            console.log("📂 Attachments prepared for message:", attachments)
 
             const message = await Message.create({
                 conversationId: conversation._id,

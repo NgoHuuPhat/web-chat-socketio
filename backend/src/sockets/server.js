@@ -20,7 +20,7 @@ const setupSocket = (server) => {
             const token = cookie.parse(socket.handshake.headers.cookie || '').accessToken
 
             if (!token) {
-                return next(new Error('Authentication error'))
+                return next(new Error('Authentication error:'))
             }
 
             const user = jwt.verify(token, process.env.JWT_SECRET)
@@ -43,9 +43,8 @@ const setupSocket = (server) => {
             socket.broadcast.emit('user_online', { userId })
         }
 
-        console.log('onlineUsers', onlineUsers)
-
         chatHandler(io, socket)
+        
         socket.on('disconnect', () => {
             if(!onlineUsers.get(userId)) return
 
@@ -54,9 +53,6 @@ const setupSocket = (server) => {
                 onlineUsers.delete(userId)
                 socket.broadcast.emit('user_offline', { userId })
             }
-
-            console.log('offlineUsers', onlineUsers)
-
         })
     })
 

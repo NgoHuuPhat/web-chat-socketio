@@ -25,7 +25,7 @@ const Chat = () => {
 
     const handleReceiveMessage = (message) => {
       const formattedMessage = {
-         _id: message._id,
+        _id: message._id,
         sender: message.sender,
         text: message.text || message.content || '',
         time: message.time || new Date().toLocaleTimeString([], { 
@@ -55,6 +55,8 @@ const Chat = () => {
                 content: formattedMessage.text,
                 senderId: formattedMessage.sender,
                 createdAt: formattedMessage.createdAt,
+                attachments: formattedMessage.attachments,
+                deleted: formattedMessage.deleted,
               },
               unreadCount: {
                 ...conversation.unreadCount,
@@ -73,7 +75,6 @@ const Chat = () => {
     }
 
     const handleNewMessageNotification = ( message ) => {
-      console.log('New message notification:', message)
       setConversations(prevConversations => {
         const updatedConversations = prevConversations.map(conversation => {
           if (conversation._id === message.conversationId) {
@@ -83,6 +84,8 @@ const Chat = () => {
                 content: message.text || message.content || '',
                 senderId: message.sender,
                 createdAt: message.createdAt,
+                attachments: message.attachments || [],
+                deleted: message.deleted || false,
               },
               unreadCount: {
                 ...conversation.unreadCount,
@@ -131,7 +134,7 @@ const Chat = () => {
           user._id === userId ? { 
             ...user, 
             isOnline: false,
-            lastOnline: user.lastOnline || new Date().toISOString()
+            lastOnline: new Date().toISOString()
            } : user
         )
       )
@@ -557,15 +560,19 @@ const Chat = () => {
       if (res.ok) {
         const mediaMessages = {
           _id: data._id,
+          conversationId: data.conversationId,
           sender: user.id,
+          createdAt: data.createdAt,
           text: '',
           time: new Date(data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          attachments: data.attachments,
+          attachments: data.attachments || [],
           messageType: 'media',
           deleted: false,
         }
 
         setMessages(prevMessages => [...prevMessages, mediaMessages])
+
+        socket.emit('send_message', mediaMessages)
 
         setConversations(prevConversations => {
           const updatedConversations = prevConversations.map(conversation => {
