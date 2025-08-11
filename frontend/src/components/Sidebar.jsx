@@ -120,7 +120,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
 
   return (
     <>
-        <aside className="w-80 bg-gradient-to-b from-slate-50 to-white border-r border-slate-200/50 h-full flex flex-col shadow-xl backdrop-blur-sm">
+        <aside className="w-90 bg-gradient-to-b from-slate-50 to-white border-r border-slate-300/50 h-full flex flex-col backdrop-blur-sm">
             <div className="p-6 border-b border-slate-200/50">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
@@ -194,7 +194,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                             containerClass += 'hover:bg-slate-100/80 hover:shadow-md'
                         }
 
-                        let avatarClass = 'w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg '
+                        let avatarClass = 'w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg '
                         if (isSelected) {
                             avatarClass += 'bg-white/20'
                         } else {
@@ -217,7 +217,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                                     {displayInitial}
                                 </div>
                                 {isOnline && (
-                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
+                                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                                 )}
                                 </div>
 

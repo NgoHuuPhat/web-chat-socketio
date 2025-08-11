@@ -1,6 +1,7 @@
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import ChatWindow from '@/components/ChatWindow'
+import MembersSidebar from '@/components/MembersSidebar'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -13,11 +14,13 @@ const Chat = () => {
   const [conversations, setConversations] = useState([])
   const [pinnedMessages, setPinnedMessages] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [showMembersSidebar, setShowMembersSidebar] = useState(false)
   const { user, socket } = useAuth()
 
   const { conversationId } = useParams()
   const navigate = useNavigate()
 
+  console.log(selectedConversation)
 
   // socket event listeners
   useEffect(() => {
@@ -607,18 +610,22 @@ const Chat = () => {
     }
   }
 
+  const handleToggleMembersSidebar = () => {
+    setShowMembersSidebar(!showMembersSidebar)
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-100 to-purple-50">
       <Header />
       <div className="flex-1 flex overflow-hidden pt-20">
-        <Sidebar 
+        <Sidebar
           users={users} 
           conversations={conversations}
           selectedConversation={selectedConversation} 
           currentUserId={user.id}
           onSelectConversation={handleSelectConversation} 
         />
-        <ChatWindow 
+        <ChatWindow
           users={users}
           selectedConversation={selectedConversation} 
           messages={messages} 
@@ -630,7 +637,15 @@ const Chat = () => {
           onUnpinMessage={handleUnpinMessage} 
           onSendMediaMessage={handleSendMediaMessage}
           uploading={uploading}
+          onToggleMembersSidebar={handleToggleMembersSidebar}
         />
+        {showMembersSidebar && (
+          <MembersSidebar 
+            selectedConversation={selectedConversation}
+            users={users}
+            currentUserId={user.id}
+          />
+        )}
       </div>
     </div>
   )

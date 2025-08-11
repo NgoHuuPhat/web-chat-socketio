@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Mic, X, Video, Loader2, Download, FileVideo, FileImage, FileText, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2, Upload } from 'lucide-react'
+import { Send, Mic, X, Video, Loader2, Download, FileVideo, FileImage, FileText, Info, Smile, Paperclip, MessageSquareText, Image, Phone, MoreVertical, MessageCircle, Pin, Trash2, Upload } from 'lucide-react'
 import { getTimeAgo, formatSeenAt } from '@/utils/formatTime'
 import EmojiPicker from 'emoji-picker-react'
 import useClickOutside from '@/hooks/useClickOutside'
@@ -18,7 +18,8 @@ const ChatWindow = ({
   pinnedMessages, 
   onPinMessage, 
   onUnpinMessage,
-  uploading
+  uploading,
+  onToggleMembersSidebar
  }) => {
   const [newMessage, setNewMessage] = useState('')
   const [activeMessageMenu, setActiveMessageMenu] = useState(null)
@@ -257,15 +258,15 @@ const ChatWindow = ({
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-purple-50/30">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 p-4 shadow-sm">
+      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-300/50 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="relative">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-semibold text-lg shadow-lg ${displayColor}`}>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-lg ${displayColor}`}>
                 {displayName?.[0]?.toUpperCase() || '?'}
               </div>
               {isOnline && (
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full animate-pulse" />
+                <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
               )}
             </div>
             <div>
@@ -274,11 +275,18 @@ const ChatWindow = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {[Phone, Video, MoreVertical].map((Icon, i) => (
-              <button key={i} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors">
-                <Icon className="h-5 w-5" />
-              </button>
-            ))}
+            <button className="p-3 cursor-pointer hover:bg-slate-100 rounded-2xl transition-colors">
+              <Phone className="h-5 w-5" />
+            </button>
+            <button className="p-3 cursor-pointer hover:bg-slate-100 rounded-2xl transition-colors">
+              <Video className="h-5 w-5" />
+            </button>
+            <button 
+              className="p-3 cursor-pointer hover:bg-slate-100 rounded-2xl transition-colors"
+                onClick={onToggleMembersSidebar}
+            >
+              <Info className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </div>
@@ -620,7 +628,7 @@ const ChatWindow = ({
               onKeyDown={(e)=>{
                 if (e.key === 'Enter' && !uploading && !isRecording) {
                   if (newMessage.trim() || selectedFiles.length > 0) {
-                    handleSendClick();
+                    handleSendClick()
                   }
                 }
               }}
