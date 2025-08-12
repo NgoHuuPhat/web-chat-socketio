@@ -238,6 +238,56 @@ class ConversationController {
             res.status(500).json({ message: 'Internal server error' })
         }
     }
+
+    // [GET] /api/conversations/:conversationId/media
+    async getConversationMedia(req, res) {
+        try {
+            const { conversationId } = req.params
+            const messageMedia = await Message.find({ 
+                conversationId, 
+                messageType: 'media', 
+                attachments:{
+                    $elemMatch: {
+                        type: { $in: ['image', 'video'] }
+                    }
+                }
+            })
+
+            if (!messageMedia || messageMedia.length === 0) {
+                return res.status(404).json({ message: 'No images/videos found for this conversation.' })
+            }
+
+            res.status(200).json(messageMedia)
+        } catch (error) {
+            console.error('Error fetching conversation media:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [GET] /api/conversations/:conversationId/files
+    async getConversationFiles(req, res) {
+        try {
+            const { conversationId } = req.params
+            const messageFiles = await Message.find({ 
+                conversationId, 
+                messageType: 'media', 
+                attachments:{
+                    $elemMatch: {
+                        type: { $in: ['file'] }
+                    }
+                }
+            })
+
+            if (!messageFiles || messageFiles.length === 0) {
+                return res.status(404).json({ message: 'No files found for this conversation.' })
+            }
+
+            res.status(200).json(messageFiles)
+        } catch (error) {
+            console.error('Error fetching conversation files:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
 }
 
 module.exports = new ConversationController()
