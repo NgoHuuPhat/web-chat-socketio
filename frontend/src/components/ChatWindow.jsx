@@ -271,7 +271,7 @@ const ChatWindow = ({
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-lg">{displayName}</h3>
-              {!isGroup && <p className="text-sm text-slate-500">{isOnline ? 'Active now' : `Active ${getTimeAgo(lastOnline)}`}</p>}
+              {!isGroup && <p className="text-sm text-slate-500">{isOnline ? 'Online' : lastOnline ? `Online ${getTimeAgo(lastOnline)}` : ''}</p>}
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -479,7 +479,7 @@ const ChatWindow = ({
 
               {/* Message Menu Button */}
               {!msg.deleted && (
-                <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} duration-200 z-10`}>
+                <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} duration-200`}>
                   {/* Button trigger */}
                   <button
                     onClick={(e) => {

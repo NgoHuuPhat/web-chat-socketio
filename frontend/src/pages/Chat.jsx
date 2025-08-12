@@ -20,8 +20,6 @@ const Chat = () => {
   const { conversationId } = useParams()
   const navigate = useNavigate()
 
-  console.log(selectedConversation)
-
   // socket event listeners
   useEffect(() => {
     if (!socket || !selectedConversation) return
@@ -229,19 +227,22 @@ const Chat = () => {
 
   // Handle selecting a conversation
   const handleSelectConversation = async (conversation) => {
-    if (!conversation) return
+    if (!conversation || !conversation._id) {
+      setSelectedConversation(conversation)
+      setMessages([])
+      setPinnedMessages([])
+      return
+    }
 
-    // Leave the previous conversation room if any
-    if (selectedConversation) {
+    if (selectedConversation?._id) {
       socket.emit('leave_conversation', selectedConversation._id)
     }
 
-    navigate(`/messages/${conversation._id}`)
     setSelectedConversation(conversation)
     setMessages([])
     setPinnedMessages([])
 
-    // Join the conversation room in socket
+    navigate(`/messages/${conversation._id}`)
     socket.emit('join_conversation', conversation._id)
 
     try {
@@ -305,8 +306,9 @@ const Chat = () => {
         setPinnedMessages([])
       }
 
-      // Mark messages as read
-      await markMessagesAsRead(conversation._id)
+      if (conversation._id) {
+        await markMessagesAsRead(conversation._id)
+      }
     } catch (error) {
       console.error('Error loading conversation:', error)
     }
@@ -314,42 +316,50 @@ const Chat = () => {
 
   // If conversationId is provided in URL, select that conversation
   useEffect(() => {
-    if(!conversations.length) return
+    if (!conversations || !conversations.length) return
 
-    if(!conversationId && !selectedConversation) {
+    if (!conversationId && !selectedConversation) {
       handleSelectConversation(conversations[0])
       return
     }
 
-    if(conversationId){
-      const conversation = conversations.find(c => c._id === conversationId)
-      if(conversation && (!selectedConversation || selectedConversation._id !== conversationId)) { 
+    if(conversationId && !selectedConversation?.id){
+      return
+    }
+
+    if (conversationId) {
+      const conversation = conversations.find(c => c && c._id === conversationId)
+      if (conversation && (!selectedConversation || selectedConversation._id !== conversationId)) { 
         handleSelectConversation(conversation)
-      } else if(!conversation) {
+      } else if (!conversation && conversations.length > 0) {
         handleSelectConversation(conversations[0])
       }
     }
   }, [conversationId, conversations])
 
 
-  // handle sending a message
+  // handle sending a message 
   const handleSendMessage = async (messageText) => {
     if(!selectedConversation || !messageText.trim()) return
 
     const payload = {
       content: messageText,
     }
+    const members = selectedConversation.members || []
+    const receiverUser = members.find(member => member._id !== user.id)
 
-    if(selectedConversation.isGroup) {
+    if (!receiverUser && !selectedConversation.isGroup) {
+      console.error('Receiver not found in conversation members')
+      return
+    }
+
+    if (!selectedConversation._id) {
+      // Virtual conversation
+      payload.receiverId = receiverUser?._id
+    } else if (selectedConversation.isGroup) {
       payload.conversationId = selectedConversation._id
     } else {
-      const receiverId = selectedConversation.members.find(member => member._id !== user.id)
-      if(!receiverId) {
-        console.error('Receiver not found in conversation members')
-        return
-      }
-
-      payload.receiverId = receiverId
+      payload.receiverId = receiverUser._id
     }
     
     try {
@@ -377,15 +387,34 @@ const Chat = () => {
 
           setMessages(prevMessages => [...prevMessages, newMessage])
 
+          // If the conversation is virtual
+          if (!selectedConversation._id && data.data.conversationId) {
+            const newConversation = {
+              ...selectedConversation,
+              _id: data.data.conversationId,
+              lastMessage: {
+                content: data.data.content,
+                senderId: user.id,
+                createdAt: data.data.createdAt,
+              },
+              unreadCount: { [user.id]: 0 }
+            }
+            
+            setConversations(prevConversations => [newConversation, ...prevConversations])
+            setSelectedConversation(newConversation)
+            navigate(`/messages/${data.data.conversationId}`)
+          }
+
           // Emit the message to the socket
           socket.emit('send_message', {
-            conversationId: selectedConversation._id,
+            conversationId: selectedConversation._id || data.data.conversationId,
             ...newMessage,
           })
 
+          const targetConversationId = selectedConversation._id || data.data.conversationId
           setConversations(prevConversations => {
             const updatedConversations = prevConversations.map(conversation => {
-              if (conversation._id === selectedConversation._id) {
+              if (conversation._id === targetConversationId) {
                 return {
                   ...conversation,
                   lastMessage: {
@@ -397,10 +426,15 @@ const Chat = () => {
               }
               return conversation
             })
-            return [
-              updatedConversations.find(c => c._id === selectedConversation._id),
-              ...updatedConversations.filter(c => c._id !== selectedConversation._id)
-            ]
+            
+            const targetConversation = updatedConversations.find(c => c._id === targetConversationId)
+            if (targetConversation) {
+              return [
+                targetConversation,
+                ...updatedConversations.filter(c => c._id !== targetConversationId)
+              ]
+            }
+            return updatedConversations
           })
         } else {
           console.error('Failed to send message:', data.message)
@@ -623,7 +657,8 @@ const Chat = () => {
           conversations={conversations}
           selectedConversation={selectedConversation} 
           currentUserId={user.id}
-          onSelectConversation={handleSelectConversation} 
+          onSelectConversation={handleSelectConversation}
+          setConversations={setConversations}
         />
         <ChatWindow
           users={users}

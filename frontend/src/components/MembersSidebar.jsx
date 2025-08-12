@@ -16,8 +16,7 @@ const MembersSidebar = ({
         const lastOnline = userDetails.lastOnline 
 
         if (isOnline) return 'Online'
-        if (lastOnline) return `Offline ${getTimeAgo(lastOnline)}`
-        return 'Unknown'
+        if (lastOnline) return `Online ${getTimeAgo(lastOnline)}`
     }
 
     // Trường hợp 1-1 conversation
@@ -33,11 +32,11 @@ const MembersSidebar = ({
                     <div className="w-20 h-20 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-4xl shadow-md">
                         {(userDetails.fullName?.[0] || userDetails.username?.[0] || '?').toUpperCase()}
                     </div>
-                    <h2 className="mt-4 mb-2 text-xl font-semibold text-gray-900">{userDetails.fullName || userDetails.username || 'Unknown'}</h2>
+                    <h2 className="mt-4 mb-1 text-xl font-semibold text-gray-900">{userDetails.fullName || userDetails.username || 'Unknown'}</h2>
                     <p className="text-sm text-gray-500">{getOnlineStatus(userDetails)}</p>
                 </div>
 
-                <nav className="flex justify-center gap-2 space-x-4 mb-2 text-gray-600">
+                <nav className="flex justify-center gap-2 space-x-4 mt-2 mb-2 text-gray-600">
                     <button
                         type="button"
                         className="flex flex-col cursor-pointer items-center text-xs hover:text-pink-500 transition"

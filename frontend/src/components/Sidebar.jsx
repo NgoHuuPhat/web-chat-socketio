@@ -2,7 +2,7 @@ import  { useEffect, useState }  from 'react'
 import { UserPlus, Search, Users, Plus } from 'lucide-react'
 import { getTimeAgo } from '@/utils/formatTime'
 
-const Sidebar = ({ users, selectedConversation, conversations, currentUserId, onSelectConversation }) => {
+const Sidebar = ({ users, selectedConversation, setConversations, conversations, currentUserId, onSelectConversation }) => {
   const [searchItem, setSearchItem] = useState('')
   const [showUserModal, setShowUserModal] = useState(false)
   const [filteredConversations, setFilteredConversations] = useState(conversations)
@@ -47,7 +47,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
     }, 100)
 
     return () => clearTimeout(delay)
-  }, [conversations, searchItem])
+  }, [conversations, searchItem])  
 
   // Handle filtering users inside modal
   useEffect(() => {
@@ -103,13 +103,16 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
         })
 
         const data = await res.json()
+        console.log('Create group response:', data)
 
         if (res.ok) {
+            setConversations(prev => [data, ...prev])
+            onSelectConversation(data) 
+
             setShowCreateGroupModal(false)
             setSelectedUsers([])
             setGroupName('')
             setSearchItemModal('')
-            onSelectConversation(data) 
         } else {
             console.error('Failed to create group conversation:', data.message)
         }
@@ -134,13 +137,13 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                     </div>
                     <div className="flex items-center gap-1">
                         <button 
-                            className="p-1 hover:bg-purple-100 rounded-md transition-all duration-200 hover:scale-105"
+                            className="p-1 hover:bg-purple-100 cursor-pointer rounded-md transition-all duration-200 hover:scale-105"
                             onClick={() => setShowUserModal(true)}
                         >
                             <UserPlus  className="h-4 w-4 text-purple-600" />
                         </button>
                         <button 
-                            className="flex p-1 items-center hover:bg-purple-100 rounded-md transition-all duration-200 hover:scale-105"
+                            className="flex p-1 items-center cursor-pointer hover:bg-purple-100 rounded-md transition-all duration-200 hover:scale-105"
                             onClick={() => setShowCreateGroupModal(true)}
                         >
                             <Users className="h-4 w-4 text-purple-600" />
@@ -164,7 +167,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <ul className="p-4 space-y-2">
                     {filteredConversations.map((conversation, index) => {
-                        const isSelected = selectedConversation && selectedConversation._id === conversation._id
+                        const isSelected = selectedConversation?._id === conversation._id
                         const isGroup = conversation.isGroup === true
 
                         let displayName = 'Unknown'
@@ -210,63 +213,63 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
 
                         return (
                             <li key={index} className={containerClass} onClick={() => onSelectConversation(conversation)}>
-                            <div className="flex items-center space-x-3">
-                                {/* Avatar */}
-                                <div className="relative">
-                                <div className={avatarClass}>
-                                    {displayInitial}
+                                <div className="flex items-center space-x-3">
+                                    {/* Avatar */}
+                                    <div className="relative">
+                                    <div className={avatarClass}>
+                                        {displayInitial}
+                                    </div>
+                                    {isOnline && (
+                                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                                    )}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className={nameClass}>{displayName}</p>
+                                        <p className={messageClass}>
+                                            {
+                                                (() => {
+                                                    const lastMessage = conversation.lastMessage
+                                                    if (!lastMessage) return ''
+
+                                                    const { content, senderId, attachments, deleted, createdAt } = lastMessage
+                                                    const prefix = senderId === currentUserId ? 'You: ' : ''
+                                                    const timeAgo = getTimeAgo(createdAt)
+
+                                                    if(deleted){
+                                                        return `${prefix}Message has been recalled • ${timeAgo}` 
+                                                    }
+
+                                                    if (attachments && attachments.length > 0) {
+                                                        const type = attachments[0].type
+                                                        const typeLabel =
+                                                            type === 'image' ? 'Sent a picture' :
+                                                            type === 'video' ? 'Sent a video' :
+                                                            type === 'file' ? 'Sent a file' :
+                                                            type === 'audio' ? 'Sent an audio' :
+                                                            'Sent an attachment'
+
+                                                        return `${prefix}${typeLabel} • ${timeAgo}`
+                                                    }
+
+                                                    if( content && content.length > 10) {
+                                                        return `${prefix}${content.slice(0, 10)}... ${timeAgo}`
+                                                    } else {
+                                                        return `${prefix}${content} • ${timeAgo}`
+                                                    }
+                                                })()
+                                            }
+                                        </p>
+                                    </div>
+
+                                    {/* Badge messages unread */}
+                                    {conversation.unreadCount?.[currentUserId] > 0 && (
+                                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg animate-bounce">
+                                        {conversation.unreadCount[currentUserId] > 5 ? '5+' : conversation.unreadCount[currentUserId]}
+                                    </span>
+                                    )}
                                 </div>
-                                {isOnline && (
-                                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
-                                )}
-                                </div>
-
-                                {/* Content */}
-                                <div className="flex-1 min-w-0">
-                                    <p className={nameClass}>{displayName}</p>
-                                    <p className={messageClass}>
-                                        {
-                                            (() => {
-                                                const lastMessage = conversation.lastMessage
-                                                if (!lastMessage) return ''
-
-                                                const { content, senderId, attachments, deleted, createdAt } = lastMessage
-                                                const prefix = senderId === currentUserId ? 'You: ' : ''
-                                                const timeAgo = getTimeAgo(createdAt)
-
-                                                if(deleted){
-                                                    return `${prefix}Message has been recalled • ${timeAgo}` 
-                                                }
-
-                                                if (attachments && attachments.length > 0) {
-                                                    const type = attachments[0].type
-                                                    const typeLabel =
-                                                        type === 'image' ? 'Sent a picture' :
-                                                        type === 'video' ? 'Sent a video' :
-                                                        type === 'file' ? 'Sent a file' :
-                                                        type === 'audio' ? 'Sent an audio' :
-                                                        'Sent an attachment'
-
-                                                    return `${prefix}${typeLabel} • ${timeAgo}`
-                                                }
-
-                                                if( content && content.length > 10) {
-                                                    return `${prefix}${content.slice(0, 10)}... ${timeAgo}`
-                                                } else {
-                                                    return `${prefix}${content} • ${timeAgo}`
-                                                }
-                                            })()
-                                        }
-                                    </p>
-                                </div>
-
-                                {/* Badge messages unread */}
-                                {conversation.unreadCount?.[currentUserId] > 0 && (
-                                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg animate-bounce">
-                                    {conversation.unreadCount[currentUserId] > 5 ? '5+' : conversation.unreadCount[currentUserId]}
-                                </span>
-                                )}
-                            </div>
                             </li>
                         )
                     })}
@@ -346,7 +349,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                                     user
                                     ],
                                     lastMessage: null,
-                                    unread: 0,
+                                    unreadCount: { [currentUserId]: 0 },
                                 })
                             }
 
@@ -533,7 +536,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                         <div className="flex gap-3">
                             <button
                                 type="button"
-                                className="px-6 py-2 bg-slate-200 hover:bg-slate-300 rounded-xl font-medium text-slate-700 transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                                className="px-6 py-2 cursor-pointer bg-slate-200 hover:bg-slate-300 rounded-xl font-medium text-slate-700 transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-slate-200"
                                 onClick={() => {
                                 setShowCreateGroupModal(false)
                                 setSelectedUsers([])
@@ -546,7 +549,7 @@ const Sidebar = ({ users, selectedConversation, conversations, currentUserId, on
                             <button
                                 type="submit"
                                 disabled={selectedUsers.length === 0 || !groupName.trim()}
-                                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-purple-200"
+                                className="px-6 py-2 cursor-pointer bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-purple-200"
                             >
                                 Create Group
                             </button>

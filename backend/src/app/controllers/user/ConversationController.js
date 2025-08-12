@@ -18,7 +18,7 @@ class ConversationController {
             .sort({ lastMessageTime: -1 }) 
 
             if (!conversations || conversations.length === 0) {
-                return res.status(404).json({ message: 'No conversations found.' });
+                return res.status(404).json({ message: 'No conversations found.' })
             }   
 
             res.status(200).json(conversations)
@@ -240,4 +240,4 @@ class ConversationController {
     }
 }
 
-module.exports = new ConversationController();
+module.exports = new ConversationController()
