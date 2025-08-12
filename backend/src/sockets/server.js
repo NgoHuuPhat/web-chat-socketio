@@ -2,6 +2,7 @@ const { Server } = require('socket.io')
 const chatHandler = require('./handlers/chatHandler')
 const cookie = require('cookie')
 const jwt = require('jsonwebtoken')
+const Account = require('../app/models/Account')
 
 const setupSocket = (server) => {
     const io = new Server(server, {
@@ -32,26 +33,36 @@ const setupSocket = (server) => {
         }
     })
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         const userId = socket.user.id.toString()
-        socket.join(userId)
 
+        socket.join(userId)
         if(!onlineUsers.has(userId)) onlineUsers.set(userId, new Set())
         onlineUsers.get(userId).add(socket.id)
 
         if(onlineUsers.get(userId).size === 1) {
             socket.broadcast.emit('user_online', { userId })
+            try {
+                await Account.findByIdAndUpdate(userId, { isOnline: true })
+            } catch (error) {
+                console.error('Error updating user_online status:', error)
+            }
         }
-
         chatHandler(io, socket)
-        
-        socket.on('disconnect', () => {
+
+        socket.on('disconnect', async () => {
             if(!onlineUsers.get(userId)) return
 
             onlineUsers.get(userId).delete(socket.id)
+
             if(onlineUsers.get(userId).size === 0){
                 onlineUsers.delete(userId)
                 socket.broadcast.emit('user_offline', { userId })
+                try {
+                    await Account.findByIdAndUpdate(userId, { isOnline: false, lastOnline: new Date() })
+                } catch (error) {
+                    console.error('Error broadcasting user_offline event:', error)
+                }
             }
         })
     })
