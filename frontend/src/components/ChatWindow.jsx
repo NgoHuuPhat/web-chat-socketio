@@ -65,7 +65,7 @@ const ChatWindow = ({
   }, [isRecording])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
   }, [messages])
 
   const handleMessageMenuClick = (index, event) => {

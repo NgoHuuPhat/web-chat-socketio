@@ -251,7 +251,7 @@ class ConversationController {
                         type: { $in: ['image', 'video'] }
                     }
                 }
-            })
+            }).sort({ createdAt: -1 })
 
             if (!messageMedia || messageMedia.length === 0) {
                 return res.status(404).json({ message: 'No images/videos found for this conversation.' })
@@ -276,7 +276,7 @@ class ConversationController {
                         type: { $in: ['file'] }
                     }
                 }
-            })
+            }).sort({ createdAt: -1 })
 
             if (!messageFiles || messageFiles.length === 0) {
                 return res.status(404).json({ message: 'No files found for this conversation.' })

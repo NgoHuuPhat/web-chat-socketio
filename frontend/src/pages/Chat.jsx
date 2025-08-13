@@ -16,6 +16,8 @@ const Chat = () => {
   const [uploading, setUploading] = useState(false)
   const [showMembersSidebar, setShowMembersSidebar] = useState(false)
   const [skipAutoSelect, setSkipAutoSelect] = useState(false)
+  const [media, setMedia] = useState([])
+  const [files, setFiles] = useState([])
   const { user, socket } = useAuth()
 
   const { conversationId } = useParams()
@@ -150,6 +152,38 @@ const Chat = () => {
       socket.off('user_offline', handleOfflineUser)
     }
   }, [socket])
+
+  useEffect(()=>{
+    const fetchMediaFiles = async () => {
+      if(!conversationId) return
+      try {
+        const [resMedia, resFiles] = await Promise.all([
+          fetch(`http://localhost:3000/api/conversations/${conversationId}/media`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+          }),
+          fetch(`http://localhost:3000/api/conversations/${conversationId}/files`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+          }),
+        ])
+
+        const [mediaData, filesData] = await Promise.all([
+          resMedia.json(),
+          resFiles.json()
+        ])
+
+        setMedia(mediaData)
+        setFiles(filesData)
+      } catch (error) {
+        console.error('Error fetching media files:', error)
+      }
+    }
+
+    fetchMediaFiles()
+  }, [conversationId])
 
   // get all users
   useEffect(() => {
@@ -337,7 +371,6 @@ const Chat = () => {
       }
     }
   }, [conversations, conversationId])
-
 
   // handle sending a message 
   const handleSendMessage = async (messageText) => {
@@ -681,6 +714,8 @@ const Chat = () => {
             selectedConversation={selectedConversation}
             users={users}
             currentUserId={user.id}
+            media={media}
+            files={files}
           />
         )}
       </div>
