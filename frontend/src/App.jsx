@@ -23,9 +23,12 @@ const App = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/messages/:conversationId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-        <Route path="/profile/:slug" element={<Profile />} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+        
+        <Route path="/messages" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/messages/:conversationId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        
+        <Route path="/profile/:slug" element={<Profile />} />
         <Route path="/" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
       </Routes>
 

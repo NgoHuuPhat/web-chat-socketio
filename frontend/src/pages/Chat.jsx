@@ -15,6 +15,7 @@ const Chat = () => {
   const [pinnedMessages, setPinnedMessages] = useState([])
   const [uploading, setUploading] = useState(false)
   const [showMembersSidebar, setShowMembersSidebar] = useState(false)
+  const [skipAutoSelect, setSkipAutoSelect] = useState(false)
   const { user, socket } = useAuth()
 
   const { conversationId } = useParams()
@@ -314,8 +315,12 @@ const Chat = () => {
     }
   }
 
-  // If conversationId is provided in URL, select that conversation
   useEffect(() => {
+    if(skipAutoSelect){
+      setSkipAutoSelect(false)
+      return
+    }
+
     if (!conversations || !conversations.length) return
 
     if (!conversationId && !selectedConversation) {
@@ -323,19 +328,15 @@ const Chat = () => {
       return
     }
 
-    if(conversationId && !selectedConversation?.id){
-      return
-    }
-
-    if (conversationId) {
+    if (conversationId && selectedConversation?._id !== conversationId) {
       const conversation = conversations.find(c => c && c._id === conversationId)
-      if (conversation && (!selectedConversation || selectedConversation._id !== conversationId)) { 
+      if (conversation) {
         handleSelectConversation(conversation)
-      } else if (!conversation && conversations.length > 0) {
+      } else if (conversations.length > 0) {
         handleSelectConversation(conversations[0])
       }
     }
-  }, [conversationId, conversations])
+  }, [conversations, conversationId])
 
 
   // handle sending a message 
@@ -399,9 +400,10 @@ const Chat = () => {
               },
               unreadCount: { [user.id]: 0 }
             }
-            
+
             setConversations(prevConversations => [newConversation, ...prevConversations])
             setSelectedConversation(newConversation)
+            setSkipAutoSelect(true)
             navigate(`/messages/${data.data.conversationId}`)
           }
 

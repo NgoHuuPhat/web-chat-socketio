@@ -36,6 +36,7 @@ const setupSocket = (server) => {
     io.on('connection', async (socket) => {
         const userId = socket.user.id.toString()
 
+
         socket.join(userId)
         if(!onlineUsers.has(userId)) onlineUsers.set(userId, new Set())
         onlineUsers.get(userId).add(socket.id)
@@ -48,6 +49,7 @@ const setupSocket = (server) => {
                 console.error('Error updating user_online status:', error)
             }
         }
+
         chatHandler(io, socket)
 
         socket.on('disconnect', async () => {
