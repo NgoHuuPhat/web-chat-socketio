@@ -402,54 +402,122 @@ const ChatWindow = ({
         </div>
       )}
 
-      {/* Messages */}
+      {/* Messages Area */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
         {messages.map((msg, i) => (
           <div key={i} id={`message-${msg._id}`} className={`flex ${msg.sender === currentUserId ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-            <div className="relative">
-              <div className={`max-w-md rounded-3xl shadow-md  
-                ${
-                  msg.deleted
-                    ? 'bg-white text-slate-500 border border-slate-300 italic px-4 py-2'
-                    : msg.attachments && msg.attachments.length > 0 && (msg.attachments[0].type === 'image' || msg.attachments[0].type === 'video')
-                      ? ''
-                      : msg.sender === currentUserId
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4 text-white shadow-purple-500/25'
-                        : 'bg-[rgb(240,240,240)] text-black shadow-slate-200/50 px-6 py-4 border border-slate-200/50'
-                }`}>
-                  {msg.deleted ? (
-                    <p className="text-sm">This message has been recalled.</p>
-                  ) : msg.messageType === 'media' ? (
-                    renderMediaMessage(msg)
-                  ) : (
-                    <p className="text-sm">{msg.text}</p>
-                  )}
-                  <p 
-                    className={`
-                      text-xs mt-2 
-                      ${msg.deleted 
-                        ? 'text-slate-400' 
-                        : msg.attachments && msg.attachments.length > 0 && (msg.attachments[0].type === 'image' || msg.attachments[0].type === 'video')
-                          ? 'text-white/90 bg-black/50 absolute bottom-2 right-2 rounded-full p-1' 
-                          : msg.sender === currentUserId 
-                            ? 'text-white/70' 
-                            : 'text-slate-500'
-                      }`}
-                  >
-                    {msg.time}
-                  </p>
+            <div className="relative flex flex-col">
+              <div className="relative max-w-md">
+                <div className={`rounded-3xl shadow-md  
+                  ${
+                    msg.deleted
+                      ? 'bg-white text-slate-500 border border-slate-300 italic px-4 py-2'
+                      : msg.attachments && msg.attachments.length > 0 && (msg.attachments[0].type === 'image' || msg.attachments[0].type === 'video')
+                        ? ''
+                        : msg.sender === currentUserId
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4 text-white shadow-purple-500/25'
+                          : 'bg-[rgb(240,240,240)] text-black shadow-slate-200/50 px-6 py-4 border border-slate-200/50'
+                  }`}>
+                    {msg.deleted ? (
+                      <p className="text-sm">This message has been recalled.</p>
+                    ) : msg.messageType === 'media' ? (
+                      renderMediaMessage(msg)
+                    ) : (
+                      <p className="text-sm">{msg.text}</p>
+                    )}
+                    <p 
+                      className={`
+                        text-xs mt-2 
+                        ${msg.deleted 
+                          ? 'text-slate-400' 
+                          : msg.attachments && msg.attachments.length > 0 && (msg.attachments[0].type === 'image' || msg.attachments[0].type === 'video')
+                            ? 'text-white/90 bg-black/50 absolute bottom-2 right-2 rounded-full p-1' 
+                            : msg.sender === currentUserId 
+                              ? 'text-white/70' 
+                              : 'text-slate-500'
+                        }`}
+                    >
+                      {msg.time}
+                    </p>
+                </div>
+
+                {/* Message Menu Button */}
+                {!msg.deleted && (
+                  <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} duration-200`}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleMessageMenuClick(i, e)
+                      }}
+                      className="p-2 hover:bg-slate-200 rounded-full transition-colors cursor-pointer border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-500 focus-ring-opacity-50"
+                      ref={messagesMenuRef}
+                      aria-label="Message options"
+                      aria-expanded={activeMessageMenu === i}
+                      aria-haspopup="menu"
+                    >
+                      <MoreVertical className="h-4 w-4 text-slate-600" />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {activeMessageMenu === i && (
+                      <div className={`absolute top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200/50 py-2 z-50 ${
+                        msg.sender === currentUserId ? 'right-0' : 'left-0'
+                      }`}>
+                        {pinnedMessages.some(p => p._id === msg._id) ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onUnpinMessage(msg._id)
+                              setActiveMessageMenu(null)
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center space-x-3 transition-colors cursor-pointer border-0 bg-transparent"
+                            type="button"
+                          >
+                            <Pin className="h-4 w-4 text-purple-600" />
+                            <span className="text-sm text-purple-700">Unpin message</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onPinMessage(msg._id)
+                              setActiveMessageMenu(null)
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center space-x-3 transition-colors cursor-pointer border-0 bg-transparent"
+                            type="button"
+                          >
+                            <Pin className="h-4 w-4 text-slate-600" />
+                            <span className="text-sm text-slate-700">Pin message</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteMessage(msg._id)
+                            setActiveMessageMenu(null)
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-red-50 flex items-center space-x-3 transition-colors cursor-pointer text-red-600 border-0 bg-transparent"
+                          type="button"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                          <span className="text-sm text-red-700">Recall message</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Message Status */}
               {msg.sender === currentUserId && msg.status === 'sent' && msg.deleted === false && i === messages.length - 1 && (
-                <div className="absolute mt-1 right-2 text-xs text-black text-left w-max">
-                  <span className="w-full">Sent {getTimeAgo(msg.createdAt)}</span>
+                <div className="mt-1 text-xs text-black text-right w-full">
+                  <span>Sent {getTimeAgo(msg.createdAt)}</span>
                 </div>
               )}
               {msg.sender === currentUserId && msg.status === 'seen' && msg.deleted === false && i === messages.length - 1 && (
-                <div className="flex items-center mt-2 space-x-1 justify-end">
+                <div className="flex items-center mt-1 space-x-1 justify-end flex-wrap">
                   {msg.seenBy.slice(0, 5).map((user, index) => (
-                    <div key={index} className="group relative" title={user.userId.fullName} >
+                    <div key={index} className="group relative" title={user.userId.fullName}>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-md bg-slate-400">
                         {user.avatarUrl ? (
                           <img
@@ -461,7 +529,7 @@ const ChatWindow = ({
                           user.userId.fullName?.[0]?.toUpperCase() || '?'
                         )}
                       </div>
-                      <div className="absolute bottom-full mb-2 right-1
+                      <div className="absolute bottom-full mb-2 right-0
                                       bg-gray-700 text-white text-xs rounded-lg px-2 py-1 
                                       opacity-0 group-hover:opacity-100 
                                       pointer-events-none transition-all duration-200 whitespace-nowrap z-10">
@@ -472,76 +540,6 @@ const ChatWindow = ({
                   {msg.seenBy.length > 5 && (
                     <div className="text-xs text-slate-500">
                       +{msg.seenBy.length - 5} more
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Message Menu Button */}
-              {!msg.deleted && (
-                <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} duration-200`}>
-                  {/* Button trigger */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleMessageMenuClick(i, e)
-                    }}
-                    className="p-2 hover:bg-slate-200 rounded-full transition-colors cursor-pointer border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
-                    ref={messagesMenuRef}
-                    aria-label="Message options"
-                    aria-expanded={activeMessageMenu === i}
-                    aria-haspopup="menu"
-                  >
-                    <MoreVertical className="h-4 w-4 text-slate-600" />
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {activeMessageMenu === i && (
-                    <div className={`absolute top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200/50 py-2 z-50 ${
-                      msg.sender === currentUserId ? 'right-0' : 'left-0'
-                    }`}>
-
-                      {/* Pin or Unpin conditional */}
-                      {pinnedMessages.some(p => p._id === msg._id) ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onUnpinMessage(msg._id)
-                            setActiveMessageMenu(null)
-                          }}
-                          className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center space-x-3 transition-colors cursor-pointer border-0 bg-transparent"
-                          type="button"
-                        >
-                          <Pin className="h-4 w-4 text-purple-600" />
-                          <span className="text-sm text-purple-700">Unpin message</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onPinMessage(msg._id)
-                            setActiveMessageMenu(null)
-                          }}
-                          className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center space-x-3 transition-colors cursor-pointer border-0 bg-transparent"
-                          type="button"
-                        >
-                          <Pin className="h-4 w-4 text-slate-600" />
-                          <span className="text-sm text-slate-700">Pin message</span>
-                        </button>
-                      )}
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDeleteMessage(msg._id)
-                          setActiveMessageMenu(null)
-                        }}
-                        className="w-full px-4 py-3 text-left hover:bg-red-50 flex items-center space-x-3 transition-colors cursor-pointer text-red-600 border-0 bg-transparent"
-                        type="button"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                        <span className="text-sm text-red-700">Recall message</span>
-                      </button>
                     </div>
                   )}
                 </div>

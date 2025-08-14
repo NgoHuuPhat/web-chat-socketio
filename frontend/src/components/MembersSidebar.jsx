@@ -261,7 +261,7 @@ const MembersSidebar = ({
                                                 <div
                                                     key={item._id}
                                                     className="flex flex-col items-center group cursor-pointer"
-                                                    onClick={() => setPreviewItem(item)} // Di chuyển onClick lên div cha
+                                                    onClick={() => setPreviewItem(item)} 
                                                 >
                                                     {item.type === 'video' ? (
                                                         <div className="relative w-16 h-16">
@@ -556,24 +556,23 @@ const MembersSidebar = ({
 
                         {showMedia && (
                             <>
-                                <section className="flex-1 p-4 grid grid-cols-2 gap-3 overflow-y-auto">
+                                <section className="grid grid-cols-4 gap-2 py-2 px-2">
                                     {mediaItems.length > 0 ? (
-                                        mediaItems.map(item => (
+                                        mediaItems.slice(0, 8).map(item => (
                                             <div
                                                 key={item._id}
                                                 className="flex flex-col items-center group cursor-pointer"
                                                 onClick={() => setPreviewItem(item)} 
                                             >
                                                 {item.type === 'video' ? (
-                                                    <div className="relative w-28 h-28">
+                                                    <div className="relative w-16 h-16">
                                                         <video
                                                             src={item.url}
-                                                            className="w-28 h-28 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
-                                                            poster={item.thumbnailUrl}
+                                                            className="w-16 h-16 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
                                                         />
                                                         <div className="absolute inset-0 flex items-center justify-center z-10">
-                                                            <div className="bg-black/80 rounded-full p-2">
-                                                                <Play className="w-6 h-6 text-white/90" />
+                                                            <div className="bg-black/80 rounded-full p-1.5">
+                                                                <Play className="w-4 h-4 text-white/90" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -581,20 +580,19 @@ const MembersSidebar = ({
                                                     <img
                                                         src={item.url}
                                                         alt={item.originalName}
-                                                        className="w-28 h-28 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
+                                                        className="w-16 h-16 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
                                                     />
                                                 )}
-                                                <p className="text-xs text-slate-400 mt-2">{formatTime(item.createdAt)}</p>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-sm text-slate-500 col-span-2 text-center py-4">No Images/Videos shared in this conversation yet</p>
+                                        <p className="text-sm text-slate-500 col-span-4 text-center p-2">No Images/Videos shared in this conversation yet</p>
                                     )}
                                 </section>
                                 {mediaItems.length > 8 && (
                                     <button
                                         type="button"
-                                        className="mt-4 w-full py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors  cursor-pointer"
+                                        className="mt-3 w-full py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors cursor-pointer"
                                         onClick={() => setViewMode('allMedia')}
                                     >
                                         See All ({mediaItems.length})
