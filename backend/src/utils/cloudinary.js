@@ -14,9 +14,39 @@ const RAW_MIME_TYPES = [
     'text/plain',
 ]
 
+// Function fix name file
+const fixFileName = (filename) => {
+    try {
+        const buffer = Buffer.from(filename, 'latin1')
+        return buffer.toString('utf8')
+    } catch (error) {
+        return filename
+    }
+}
+
+const createSafeFileName = (originalName) => {
+    const fixedName = fixFileName(originalName)
+
+    const ext = path.extname(fixedName)
+    const baseName = path.basename(fixedName, ext)
+
+    const safeBaseName = baseName
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')     
+        .replace(/[^\w\d\s\-]+/g, '')         
+        .replace(/\s+/g, '-')                
+        .replace(/-+/g, '-')            
+        .trim()                              
+        .toLowerCase()  
+    
+     return `${safeBaseName}-${uuidv4()}${ext.toLowerCase()}`
+}
+
 // Upload a single file to Cloudinary
 const uploadToCloudinary = (file) => {
     return new Promise((resolve, reject) => {
+        const originalName = fixFileName(file.originalname)
+
         const uploadOptions = { 
             folder: `${file.fieldname}s`,
         }
@@ -27,11 +57,7 @@ const uploadToCloudinary = (file) => {
             uploadOptions.chunk_size = 3000000
         } else if (RAW_MIME_TYPES.includes(file.mimetype)) {
             uploadOptions.resource_type = 'raw'
-
-            const ext = path.extname(file.originalname)
-            const baseName = path.basename(file.originalname, ext)
-
-            uploadOptions.public_id = `${baseName}-${uuidv4()}${ext}`
+            uploadOptions.public_id = createSafeFileName(originalName)
         }
 
         const stream = cloudinary.uploader.upload_stream(
@@ -40,7 +66,7 @@ const uploadToCloudinary = (file) => {
                 if (result) {
                     const fileInfo = {
                         ...result,
-                        originalName: file.originalname,
+                        originalName: originalName,
                         mimetype: file.mimetype,
                         size: file.size,
                     }
