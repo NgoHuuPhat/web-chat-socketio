@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, Search, LogOut, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ArrowLeft } from 'lucide-react'
+import { Bell, Search, LogOut, Play, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft } from 'lucide-react'
 import { getTimeAgo } from '@/utils/formatTime'
 import { formatTime } from '@/utils/formatTime'
 
@@ -14,6 +14,7 @@ const MembersSidebar = ({
     const [showMedia, setShowMedia] = useState(false)
     const [showFiles, setShowFiles] = useState(false)
     const [viewMode, setViewMode] = useState('normal') // 'normal', 'allMedia', 'allFiles'
+    const [previewItem, setPreviewItem] = useState(null)
 
     const getOnlineStatus = (member) => {
         const userDetails = users.find(u => u._id === member._id) || {}
@@ -70,7 +71,7 @@ const MembersSidebar = ({
             .filter(message => message?.attachments && Array.isArray(message.attachments) && message.attachments.length > 0)
             .flatMap(message => 
                 message.attachments
-                    .filter(attachment => ['file', 'audio'].includes(attachment?.type))
+                    .filter(attachment => ['file'].includes(attachment?.type))
                     .map(attachment => ({
                         _id: attachment._id || `${message._id}-${attachment.url}`,
                         url: attachment.url,
@@ -95,25 +96,35 @@ const MembersSidebar = ({
             <header className="p-4 border-b border-slate-200 flex items-center">
                 <button
                     type="button"
-                    className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                    className="p-2 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
                     onClick={() => setViewMode('normal')}
                     aria-label="Back to sidebar"
                 >
-                    <ArrowLeft className="w-5 h-5 text-slate-700" />
+                    <ChevronLeft className="w-5 h-5 text-slate-700" />
                 </button>
                 <h2 className="ml-3 text-lg font-semibold text-slate-900">All Photos & Videos</h2>
             </header>
             <section className="flex-1 p-4 grid grid-cols-2 gap-3 overflow-y-auto">
                 {mediaItems.length > 0 ? (
                     mediaItems.map(item => (
-                        <div key={item._id} className="flex flex-col items-center group cursor-pointer">
+                        <div
+                            key={item._id}
+                            className="flex flex-col items-center group cursor-pointer"
+                            onClick={() => setPreviewItem(item)} // Di chuyển onClick lên div cha
+                        >
                             {item.type === 'video' ? (
-                                <video
-                                    src={item.url}
-                                    className="w-28 h-28 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
-                                    controls
-                                    poster={item.thumbnailUrl}
-                                />
+                                <div className="relative w-28 h-28">
+                        <video
+                            src={item.url}
+                            className="w-28 h-28 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
+                            poster={item.thumbnailUrl}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center z-10">
+                            <div className="bg-black/80 rounded-full p-2">
+                                <Play className="w-6 h-6 text-white/90" />
+                            </div>
+                        </div>
+                    </div>
                             ) : (
                                 <img
                                     src={item.url}
@@ -136,15 +147,15 @@ const MembersSidebar = ({
             <header className="p-4 border-b border-slate-200 flex items-center">
                 <button
                     type="button"
-                    className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                    className="p-2 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
                     onClick={() => setViewMode('normal')}
                     aria-label="Back to sidebar"
                 >
-                    <ArrowLeft className="w-5 h-5 text-slate-700" />
+                    <ChevronLeft className="w-5 h-5 text-slate-700" />
                 </button>
                 <h2 className="ml-3 text-lg font-semibold text-slate-900">All Files</h2>
             </header>
-            <section className="flex-1 p-4 space-y-3 overflow-y-auto">
+            <section className="flex-1 p-4 space-y-3 cursor-pointer overflow-y-auto">
                 {fileItems.length > 0 ? (
                     fileItems.map(item => (
                         <div key={item._id} className="flex items-center space-x-3 hover:bg-slate-100 rounded-lg p-3 shadow-sm transition-colors w-full cursor-pointer">
@@ -247,13 +258,23 @@ const MembersSidebar = ({
                                     <section className="grid grid-cols-4 gap-2 py-2 px-2">
                                         {mediaItems.length > 0 ? (
                                             mediaItems.slice(0, 8).map(item => (
-                                                <div key={item._id} className="flex flex-col items-center group cursor-pointer">
+                                                <div
+                                                    key={item._id}
+                                                    className="flex flex-col items-center group cursor-pointer"
+                                                    onClick={() => setPreviewItem(item)} // Di chuyển onClick lên div cha
+                                                >
                                                     {item.type === 'video' ? (
-                                                        <video
-                                                            src={item.url}
-                                                            className="w-16 h-16 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
-                                                            controls
-                                                        />
+                                                        <div className="relative w-16 h-16">
+                                                            <video
+                                                                src={item.url}
+                                                                className="w-16 h-16 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
+                                                            />
+                                                            <div className="absolute inset-0 flex items-center justify-center z-10">
+                                                                <div className="bg-black/80 rounded-full p-1.5">
+                                                                    <Play className="w-4 h-4 text-white/90" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     ) : (
                                                         <img
                                                             src={item.url}
@@ -352,6 +373,27 @@ const MembersSidebar = ({
                             </button>
                         </footer>
                     </>
+                )}
+                {previewItem && (
+                    <div
+                        className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+                        onClick={() => setPreviewItem(null)}
+                    >
+                        {previewItem.type === 'video' ? (
+                            <video
+                                src={previewItem.url}
+                                className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-xl object-contain"
+                                controls
+                                poster={previewItem.thumbnailUrl}
+                            />
+                        ) : (
+                            <img
+                                src={previewItem.url}
+                                alt={previewItem.originalName}
+                                className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-xl object-contain"
+                            />
+                        )}
+                    </div>
                 )}
             </aside>
         )
@@ -455,7 +497,7 @@ const MembersSidebar = ({
                         {showMembers && (
                             <section
                                 id="members-list"
-                                className="p-4 pt-0 pb-0 space-y-3"
+                                className="space-y-3 cursor-pointer"
                             >
                                 {membersWithDetails.map(member => (
                                     <div
@@ -490,7 +532,7 @@ const MembersSidebar = ({
                                         {canManageMember(member) && (
                                             <button
                                                 type="button"
-                                                className="p-2 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded-full transition-colors"
+                                                className="p-2 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
                                                 aria-label="Manage member"
                                             >
                                                 <MoreVertical className="w-5 h-5 text-slate-500" />
@@ -514,27 +556,39 @@ const MembersSidebar = ({
 
                         {showMedia && (
                             <>
-                                <section className="grid grid-cols-4 gap-2 py-2 px-2">
+                                <section className="flex-1 p-4 grid grid-cols-2 gap-3 overflow-y-auto">
                                     {mediaItems.length > 0 ? (
-                                        mediaItems.slice(0, 8).map(item => (
-                                            <div key={item._id} className="flex flex-col items-center group cursor-pointer">
+                                        mediaItems.map(item => (
+                                            <div
+                                                key={item._id}
+                                                className="flex flex-col items-center group cursor-pointer"
+                                                onClick={() => setPreviewItem(item)} 
+                                            >
                                                 {item.type === 'video' ? (
-                                                    <video
-                                                        src={item.url}
-                                                        className="w-16 h-16 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
-                                                        controls
-                                                    />
+                                                    <div className="relative w-28 h-28">
+                                                        <video
+                                                            src={item.url}
+                                                            className="w-28 h-28 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
+                                                            poster={item.thumbnailUrl}
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center z-10">
+                                                            <div className="bg-black/80 rounded-full p-2">
+                                                                <Play className="w-6 h-6 text-white/90" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 ) : (
                                                     <img
                                                         src={item.url}
                                                         alt={item.originalName}
-                                                        className="w-16 h-16 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
+                                                        className="w-28 h-28 object-cover rounded-lg shadow-sm transition-transform hover:brightness-90"
                                                     />
                                                 )}
+                                                <p className="text-xs text-slate-400 mt-2">{formatTime(item.createdAt)}</p>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-sm text-slate-500 col-span-4 text-center p-2">No Images/Videos shared in this conversation yet</p>
+                                        <p className="text-sm text-slate-500 col-span-2 text-center py-4">No Images/Videos shared in this conversation yet</p>
                                     )}
                                 </section>
                                 {mediaItems.length > 8 && (
@@ -628,6 +682,27 @@ const MembersSidebar = ({
                         </button>
                     </footer>
                 </>
+            )}
+            {previewItem && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+                    onClick={() => setPreviewItem(null)}
+                >
+                    {previewItem.type === 'video' ? (
+                        <video
+                            src={previewItem.url}
+                            className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-xl object-contain"
+                            controls
+                            poster={previewItem.thumbnailUrl}
+                        />
+                    ) : (
+                        <img
+                            src={previewItem.url}
+                            alt={previewItem.originalName}
+                            className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-xl object-contain"
+                        />
+                    )}
+                </div>
             )}
         </aside>
     )

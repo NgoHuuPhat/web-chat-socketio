@@ -49,6 +49,24 @@ const Chat = () => {
         setMessages(prevMessages => [...prevMessages, formattedMessage])
       }
 
+      if (formattedMessage.messageType === 'media' && formattedMessage.attachments.length > 0) {
+        const mediaAttachments = formattedMessage.attachments.filter(att => ['image', 'video'].includes(att.type));
+        const fileAttachments = formattedMessage.attachments.filter(att => ['file', 'audio'].includes(att.type));
+
+        if (mediaAttachments.length > 0 && selectedConversation._id === message.conversationId) {
+          setMedia(prevMedia => [{
+            ...formattedMessage,
+            attachments: mediaAttachments
+          }, ...prevMedia]);
+        }
+        if (fileAttachments.length > 0 && selectedConversation._id === message.conversationId) {
+          setFiles(prevFiles => [{
+            ...formattedMessage,
+            attachments: fileAttachments
+          }, ...prevFiles]);
+        }
+      }
+
       // Update conversations state when a new message is received
       setConversations(prevConversations => {
         const updatedConversations = prevConversations.map(conversation => {
@@ -643,6 +661,27 @@ const Chat = () => {
         }
 
         setMessages(prevMessages => [...prevMessages, mediaMessages])
+
+        const mediaAttachments = data.attachments.filter(att => ['image', 'video'].includes(att.type))
+        const fileAttachments = data.attachments.filter(att => ['file'].includes(att.type))
+
+        if(mediaAttachments.length > 0) {
+          setMedia(prevMedia => [
+            {
+              ...mediaMessages,
+              attachments: mediaAttachments,
+            }, ...prevMedia
+          ])
+        }
+
+        if(fileAttachments.length > 0) {
+          setFiles(prevFiles => [
+            {
+              ...mediaMessages,
+              attachments: fileAttachments,
+            }, ...prevFiles
+          ])
+        }
 
         socket.emit('send_message', mediaMessages)
 
