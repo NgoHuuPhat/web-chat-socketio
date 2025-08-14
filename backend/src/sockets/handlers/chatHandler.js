@@ -29,4 +29,8 @@ module.exports = (io, socket) => {
         }
     })
 
+    socket.on('delete_message', ({messageId, conversationId, messageType, attachments}) => {
+        socket.to(conversationId).emit('message_deleted', { messageId, conversationId, messageType, attachments })
+    })
+
 }

@@ -402,12 +402,12 @@ const ChatWindow = ({
         </div>
       )}
 
-      {/* Messages Area */}
+      {/* Message Area */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
         {messages.map((msg, i) => (
           <div key={i} id={`message-${msg._id}`} className={`flex ${msg.sender === currentUserId ? 'justify-end' : 'justify-start'} animate-fade-in`}>
             <div className="relative flex flex-col">
-              <div className="relative max-w-md">
+              <div className="relative max-w-md group">
                 <div className={`rounded-3xl shadow-md  
                   ${
                     msg.deleted
@@ -418,32 +418,32 @@ const ChatWindow = ({
                           ? 'bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4 text-white shadow-purple-500/25'
                           : 'bg-[rgb(240,240,240)] text-black shadow-slate-200/50 px-6 py-4 border border-slate-200/50'
                   }`}>
-                    {msg.deleted ? (
-                      <p className="text-sm">This message has been recalled.</p>
-                    ) : msg.messageType === 'media' ? (
-                      renderMediaMessage(msg)
-                    ) : (
-                      <p className="text-sm">{msg.text}</p>
-                    )}
-                    <p 
-                      className={`
-                        text-xs mt-2 
-                        ${msg.deleted 
-                          ? 'text-slate-400' 
-                          : msg.attachments && msg.attachments.length > 0 && (msg.attachments[0].type === 'image' || msg.attachments[0].type === 'video')
-                            ? 'text-white/90 bg-black/50 absolute bottom-2 right-2 rounded-full p-1' 
-                            : msg.sender === currentUserId 
-                              ? 'text-white/70' 
-                              : 'text-slate-500'
-                        }`}
-                    >
-                      {msg.time}
-                    </p>
+                  {msg.deleted ? (
+                    <p className="text-sm">This message has been recalled.</p>
+                  ) : msg.messageType === 'media' ? (
+                    renderMediaMessage(msg)
+                  ) : (
+                    <p className="text-sm">{msg.text}</p>
+                  )}
+                  <p 
+                    className={`
+                      text-xs mt-2 
+                      ${msg.deleted 
+                        ? 'text-slate-400' 
+                        : msg.attachments && msg.attachments.length > 0 && (msg.attachments[0].type === 'image' || msg.attachments[0].type === 'video')
+                          ? 'text-white/90 bg-black/50 absolute bottom-2 right-2 rounded-full p-1' 
+                          : msg.sender === currentUserId 
+                            ? 'text-white/70' 
+                            : 'text-slate-500'
+                      }`}
+                  >
+                    {msg.time}
+                  </p>
                 </div>
 
                 {/* Message Menu Button */}
                 {!msg.deleted && (
-                  <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} duration-200`}>
+                  <div className={`absolute top-1/2 -translate-y-1/2 ${msg.sender === currentUserId ? '-left-10' : '-right-10'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -460,7 +460,7 @@ const ChatWindow = ({
 
                     {/* Dropdown Menu */}
                     {activeMessageMenu === i && (
-                      <div className={`absolute top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200/50 py-2 z-50 ${
+                      <div className={`absolute top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200/50 py-2 z-100 ${
                         msg.sender === currentUserId ? 'right-0' : 'left-0'
                       }`}>
                         {pinnedMessages.some(p => p._id === msg._id) ? (
@@ -510,8 +510,14 @@ const ChatWindow = ({
 
               {/* Message Status */}
               {msg.sender === currentUserId && msg.status === 'sent' && msg.deleted === false && i === messages.length - 1 && (
-                <div className="mt-1 text-xs text-black text-right w-full">
-                  <span>Sent {getTimeAgo(msg.createdAt)}</span>
+                <div className="mt-2 text-xs text-black text-right w-full">
+                  <span>
+                    Sent {
+                      Date.now() - new Date(msg.createdAt).getTime() < 60 * 1000
+                        ? ''
+                        : getTimeAgo(msg.createdAt)
+                    }
+                  </span>
                 </div>
               )}
               {msg.sender === currentUserId && msg.status === 'seen' && msg.deleted === false && i === messages.length - 1 && (

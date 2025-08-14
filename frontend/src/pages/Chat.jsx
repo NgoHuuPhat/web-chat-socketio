@@ -50,20 +50,20 @@ const Chat = () => {
       }
 
       if (formattedMessage.messageType === 'media' && formattedMessage.attachments.length > 0) {
-        const mediaAttachments = formattedMessage.attachments.filter(att => ['image', 'video'].includes(att.type));
-        const fileAttachments = formattedMessage.attachments.filter(att => ['file', 'audio'].includes(att.type));
+        const mediaAttachments = formattedMessage.attachments.filter(att => ['image', 'video'].includes(att.type))
+        const fileAttachments = formattedMessage.attachments.filter(att => ['file', 'audio'].includes(att.type))
 
         if (mediaAttachments.length > 0 && selectedConversation._id === message.conversationId) {
           setMedia(prevMedia => [{
             ...formattedMessage,
             attachments: mediaAttachments
-          }, ...prevMedia]);
+          }, ...(Array.isArray(prevMedia) ? prevMedia : [])])
         }
         if (fileAttachments.length > 0 && selectedConversation._id === message.conversationId) {
           setFiles(prevFiles => [{
             ...formattedMessage,
             attachments: fileAttachments
-          }, ...prevFiles]);
+          }, ...(Array.isArray(prevFiles) ? prevFiles : [])])
         }
       }
 
@@ -126,15 +126,51 @@ const Chat = () => {
       })
     }
 
-    // Register the socket event listener
-    socket.on('receive_message', handleReceiveMessage)
+    const handleDeleteMessage = ({messageId, conversationId, messageType, attachments}) => {
+      if(selectedConversation && selectedConversation._id === conversationId) {
+        setMessages(prevMessages => prevMessages.map(msg => msg._id === messageId ? { ...msg, deleted: true } : msg))
 
-    // Register the new message notification listener
+        if(messageType === 'media' && attachments.length > 0) {
+          setMedia(prevMedia => prevMedia.filter(media => media._id !== messageId))
+          setFiles(prevFiles => prevFiles.filter(file => file._id !== messageId))
+        }
+      
+        setPinnedMessages(prevPinned => prevPinned.filter(msg => msg._id !== messageId))
+
+        setConversations(prevConversations => {
+          const updatedConversations = prevConversations.map(conversation => {
+            if (conversation._id === conversationId) {
+              return {
+                ...conversation,
+                lastMessage: {
+                  ...conversation.lastMessage,
+                  deleted: true,
+                },
+                unreadCount: {
+                  ...conversation.unreadCount,
+                  [user.id]: 0
+                }
+              }
+            }
+            return conversation
+          })
+
+          return [
+            updatedConversations.find(c => c._id === conversationId),
+            ...updatedConversations.filter(c => c._id !== conversationId)
+          ]
+        })
+      }
+    }
+
+    socket.on('receive_message', handleReceiveMessage)
     socket.on('new_message_notification', handleNewMessageNotification)
+    socket.on('message_deleted', handleDeleteMessage)
 
     return () => {
       socket.off('receive_message', handleReceiveMessage)
       socket.off('new_message_notification', handleNewMessageNotification)
+      socket.off('message_deleted', handleDeleteMessage)
     }
     
   }, [socket, selectedConversation, user.id])
@@ -520,6 +556,15 @@ const Chat = () => {
           )
         )
 
+        const deletedMessage = messages.find(msg => msg._id === messageId)
+        if(deletedMessage && deletedMessage.messageType === 'media' && deletedMessage.attachments.length > 0) {
+          // Remove media files from state
+          setMedia(prevMedia => prevMedia.filter(media => media._id !== messageId))
+          setFiles(prevFiles => prevFiles.filter(file => file._id !== messageId))
+        }
+
+        setPinnedMessages(prevPinned => prevPinned.filter(msg => msg._id !== messageId))
+
         setConversations(prevConversations => {
           const updatedConversations = prevConversations.map(conversation => {
             if (conversation._id === selectedConversation._id) {
@@ -539,6 +584,13 @@ const Chat = () => {
             ...updatedConversations.filter(c => c._id !== selectedConversation._id)
           ]
         })
+
+        socket.emit('delete_message', { 
+          messageId, 
+          conversationId: selectedConversation._id,
+          messageType: deletedMessage?.messageType,
+          attachments: deletedMessage?.attachments,
+         })
       } else {
         console.error('Failed to delete message:', data.message)
       }
@@ -679,7 +731,7 @@ const Chat = () => {
             {
               ...mediaMessages,
               attachments: fileAttachments,
-            }, ...prevFiles
+            }, ...(Array.isArray(prevFiles) ? prevFiles : [])
           ])
         }
 
