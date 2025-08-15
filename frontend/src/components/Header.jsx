@@ -1,7 +1,6 @@
   import { useState, useRef, useEffect } from 'react'
   import { Search, Bell, ChevronDown } from 'lucide-react'
   import logo from '@/assets/images/logo_chat.png'
-  import avatar from '@/assets/avatars/124_4x6.jpg'
   import { useNavigate, Link } from 'react-router-dom'  
   import { useAuth } from '@/context/AuthContext'
 
@@ -75,7 +74,7 @@
                   onClick={toggleDropdown}
                   className="flex items-center space-x-2 hover:bg-white/10 p-2 rounded-xl cursor:pointer transition duration-300 cursor-pointer"
                 >
-                  <img src={avatar} alt="User Avatar" className="h-8 w-8 rounded-full object-cover" />
+                  <img src={user.avatar} alt="User Avatar" className="h-8 w-8 rounded-full object-cover" />
                   <span className="font-semibold">{user.fullName}</span>
                   <ChevronDown className="h-4 w-4" />
                 </button>

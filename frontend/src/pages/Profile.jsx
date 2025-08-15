@@ -8,6 +8,7 @@ import Avatar from '@/components/Avatar'
 import ActionButton from '@/components/ActionButton'
 import FormField from '@/components/FormField'
 import Header from '@/components/Header'
+import { useAuth } from '@/context/AuthContext'
 
 const Profile = () => {
   const { slug } = useParams()
@@ -16,6 +17,7 @@ const Profile = () => {
   const [error, setError] = useState(null)
   const [userInfo, setUserInfo] = useState({})
   const imageInputRef = useRef(null)
+  const { setUser } = useAuth()
 
   useEffect(() => {
     try {
@@ -62,6 +64,7 @@ const Profile = () => {
       }
 
       setUserInfo(prev => ({ ...prev, avatar: data.user.avatar }))
+      setUser(prev => ({ ...prev, avatar: data.user.avatar }))
     } catch (error) {
       console.error('Error uploading file:', error)
     } finally {
