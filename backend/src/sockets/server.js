@@ -35,9 +35,9 @@ const setupSocket = (server) => {
 
     io.on('connection', async (socket) => {
         const userId = socket.user.id.toString()
-
-
+        
         socket.join(userId)
+
         if(!onlineUsers.has(userId)) onlineUsers.set(userId, new Set())
         onlineUsers.get(userId).add(socket.id)
 

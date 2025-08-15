@@ -163,14 +163,41 @@ const Chat = () => {
       }
     }
 
+    const handleSocketPinMessage = (data) => {
+      if(selectedConversation && selectedConversation._id === data.conversationId) {
+        setPinnedMessages(prevPinned => [
+          ...prevPinned, 
+          { 
+            _id: data._id,
+            sender: data.sender._id,
+            senderName: data.senderName,
+            text: data.text,
+            time: data.time,
+            attachments: data.attachments || [],
+            messageType: data.messageType || 'text',
+            deleted: data.deleted || false,
+        }])
+      }
+    }
+
+    const handleSocketUnpinMessage = ({messageId, conversationId}) => {
+      if(selectedConversation && selectedConversation._id === conversationId) {
+        setPinnedMessages(prevPinned => prevPinned.filter(msg => msg._id !== messageId))
+      }
+    }
+
     socket.on('receive_message', handleReceiveMessage)
     socket.on('new_message_notification', handleNewMessageNotification)
     socket.on('message_deleted', handleDeleteMessage)
+    socket.on('message_pinned', handleSocketPinMessage)
+    socket.on('message_unpinned', handleSocketUnpinMessage)
 
     return () => {
       socket.off('receive_message', handleReceiveMessage)
       socket.off('new_message_notification', handleNewMessageNotification)
       socket.off('message_deleted', handleDeleteMessage)
+      socket.off('message_pinned', handleSocketPinMessage)
+      socket.off('message_unpinned', handleSocketUnpinMessage)
     }
     
   }, [socket, selectedConversation, user.id])
@@ -631,6 +658,18 @@ const Chat = () => {
           messageType: data.pinnedMessage.messageType || 'text',
           deleted: data.pinnedMessage.deleted || false,
         }])
+
+        socket.emit('pin_message', {
+          _id: data.pinnedMessage._id,
+          sender: data.pinnedMessage.senderId,
+          senderName: data.pinnedMessage.senderId.fullName,
+          text: data.pinnedMessage.content,
+          time: new Date(data.pinnedMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          attachments: data.pinnedMessage.attachments || [],
+          messageType: data.pinnedMessage.messageType || 'text',
+          deleted: data.pinnedMessage.deleted || false,
+          conversationId: selectedConversation._id,
+        })
       } else {
         console.error('Failed to pin message:', data.message)
       }
@@ -659,6 +698,11 @@ const Chat = () => {
 
       if (res.ok) {
         setPinnedMessages(prevPinned => prevPinned.filter(msg => msg._id !== msgId))
+        
+        socket.emit('unpin_message', {
+          messageId: msgId,
+          conversationId: selectedConversation._id
+        })
       } else {
         console.error('Failed to unpin message:', data.message)
       }
@@ -722,7 +766,7 @@ const Chat = () => {
             {
               ...mediaMessages,
               attachments: mediaAttachments,
-            }, ...prevMedia
+            }, ...(Array.isArray(prevMedia) ? prevMedia : [])
           ])
         }
 

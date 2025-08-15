@@ -33,4 +33,12 @@ module.exports = (io, socket) => {
         socket.to(conversationId).emit('message_deleted', { messageId, conversationId, messageType, attachments })
     })
 
+    socket.on('pin_message', (message) => {
+        console.log('Pinning message:', message)
+        const { conversationId } = message
+        socket.to(conversationId).emit('message_pinned', message )
+    })
+    socket.on('unpin_message', ({ messageId, conversationId }) => {
+        socket.to(conversationId).emit('message_unpinned', { messageId, conversationId })
+    })
 }
