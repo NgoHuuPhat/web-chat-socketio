@@ -70,7 +70,7 @@ class ConversationController {
             if (!groupName || !members || members.length === 0) {
                 return res.status(400).json({ message: 'Name and members are required.' })
             }
-            
+
             const conversation = await Conversation.create({
                 isGroup: true,
                 groupName,
@@ -78,8 +78,11 @@ class ConversationController {
                 createdBy: userId,
                 members: [userId, ...members],
             })
-            
-            res.status(201).json(conversation)
+
+            const populatedConversation = await Conversation.findById(conversation._id)
+                .populate('members', 'fullName avatar')
+
+            res.status(201).json(populatedConversation)
 
         } catch (error) {
             console.error('Error creating conversation:', error)

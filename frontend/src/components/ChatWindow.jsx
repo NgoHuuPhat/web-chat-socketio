@@ -262,9 +262,11 @@ const ChatWindow = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="relative">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-lg ${displayColor}`}>
-                {displayName?.[0]?.toUpperCase() || '?'}
-              </div>
+              {otherUser?.avatar ? <img src={otherUser.avatar} alt={`${displayName || 'User'} Avatar`} className="h-12 w-12 rounded-full object-cover" /> : 
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-lg ${displayColor}`}>
+                  {displayName?.[0]?.toUpperCase() || '?'}
+                </div>
+              }
               {isOnline && (
                 <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
               )}
