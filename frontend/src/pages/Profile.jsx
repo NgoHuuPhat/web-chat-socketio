@@ -140,7 +140,7 @@ const Profile = () => {
                 userInfo={userInfo} 
                 onAvatarClick={() => imageInputRef.current.click()}
                 size="large"
-                className={uploading ? "opacity-30" : ""}
+                className={uploading ? "opacity-30" : "border-4"}
               />
 
               {uploading && (

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { UserPlus, Search, Users, Plus } from 'lucide-react'
 import { getTimeAgo } from '@/utils/formatTime'
 import { useAuth } from '@/context/AuthContext'
+import GroupAvatar from '@/components/GroupAvatar'
+import Avatar from '@/components/Avatar'
 
 const Sidebar = ({ users, selectedConversation, setConversations, conversations, currentUserId, onSelectConversation }) => {
   const { user } = useAuth()
@@ -124,6 +126,12 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
     }
   }
 
+  // Helper function to get partner info for 1-1 conversations
+  const getPartnerInfo = (conversation) => {
+    const partnerId = conversation.members.find(member => member._id !== currentUserId)?._id
+    return users.find(user => user._id === partnerId)
+  }
+
   return (
     <>
       <aside className="w-90 bg-gradient-to-b from-slate-50 to-white border-r border-slate-300/50 h-full flex flex-col backdrop-blur-sm">
@@ -173,176 +181,13 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
               const isSelected = selectedConversation?._id === conversation._id
               const isGroup = conversation.isGroup === true
 
+              // Get display name
               let displayName = 'Unknown'
-              let avatarElement
-              let isOnline = false
-
               if (isGroup) {
                 displayName = conversation.groupName || 'Unnamed Group'
-
-                // Group avatar logic
-                if (conversation.groupAvatar) {
-                  avatarElement = (
-                    <img
-                      src={conversation.groupAvatar}
-                      alt={`${displayName}'s Avatar`}
-                      className={isSelected ? 'h-12 w-12 rounded-full object-cover border-1 border-white' : 'h-12 w-12 rounded-full object-cover border-1 border-slate-300'}
-                    />
-                  )
-                } else {
-                  // No group avatar, show member avatars (including current user)
-                  const allMembers = conversation.members || []
-                  const totalMembers = allMembers.length
-
-                  const membersData = allMembers.map(member => {
-                    if (member._id === user._id) {
-                      return user
-                    }
-                    return users.find(user => user._id === member._id) || member
-                  })
-
-                  if (totalMembers === 2) {
-                    avatarElement = (
-                      <div className="flex space-x-[-4px]">
-                        {membersData.slice(0, 2).map((memberData, idx) => (
-                          <div key={idx} className="relative">
-                            {memberData?.avatar ? (
-                              <img
-                                src={memberData.avatar}
-                                alt={`${memberData.fullName}'s Avatar`}
-                                className={isSelected ? 'h-6 w-6 rounded-full object-cover border-1 border-white' : 'h-6 w-6 rounded-full object-cover border border-slate-300'}
-                              />
-                            ) : (
-                              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white font-bold text-xs border-1 border-white ${
-                                memberData?.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                              }`}>
-                                {memberData?.fullName?.[0]?.toUpperCase() || '?'}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  } else if (totalMembers === 3) {
-                    avatarElement = (
-                      <div className="flex flex-col space-y-[-4px]">
-                        {/* First row: 1 avatar centered */}
-                        <div className="flex justify-center">
-                          <div className="relative">
-                            {membersData[0]?.avatar ? (
-                              <img
-                                src={membersData[0].avatar}
-                                alt={`${membersData[0].fullName}'s Avatar`}
-                                className={isSelected ? 'h-6 w-6 rounded-full object-cover border-1 border-white' : 'h-6 w-6 rounded-full object-cover border border-slate-300'}
-                              />
-                            ) : (
-                              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white font-bold text-xs border-1 border-white ${
-                                membersData[0]?.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                              }`}>
-                                {membersData[0]?.fullName?.[0]?.toUpperCase() || '?'}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {/* Second row: 2 avatars */}
-                        <div className="flex space-x-[-4px] justify-center">
-                          {membersData.slice(1, 3).map((memberData, idx) => (
-                            <div key={idx + 1} className="relative">
-                              {memberData?.avatar ? (
-                                <img
-                                  src={memberData.avatar}
-                                  alt={`${memberData.fullName}'s Avatar`}
-                                  className={isSelected ? 'h-6 w-6 rounded-full object-cover border-1 border-white' : 'h-6 w-6 rounded-full object-cover border border-slate-300'}
-                                />
-                              ) : (
-                                <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white font-bold text-xs border-1 border-white ${
-                                  memberData?.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                                }`}>
-                                  {memberData?.fullName?.[0]?.toUpperCase() || '?'}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  } else {
-                    // 4+ members
-                    const extraMembers = totalMembers - 3
-                    avatarElement = (
-                      <div className="flex flex-col space-y-[-4px]">
-                        {/* First row: 2 avatars */}
-                        <div className="flex space-x-[-4px]">
-                          {membersData.slice(0, 2).map((memberData, idx) => (
-                            <div key={idx} className="relative">
-                              {memberData?.avatar ? (
-                                <img
-                                  src={memberData.avatar}
-                                  alt={`${memberData.fullName}'s Avatar`}
-                                  className={isSelected ? 'h-6 w-6 rounded-full object-cover border-1 border-white' : 'h-6 w-6 rounded-full object-cover border border-slate-300'}
-                                />
-                              ) : (
-                                <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white font-bold text-xs border-1 border-white ${
-                                  memberData?.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                                }`}>
-                                  {memberData?.fullName?.[0]?.toUpperCase() || '?'}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        {/* Second row: 1 avatar + count */}
-                        <div className="flex space-x-[-4px]">
-                          <div className="relative">
-                            {membersData[2]?.avatar ? (
-                              <img
-                                src={membersData[2].avatar}
-                                alt={`${membersData[2].fullName}'s Avatar`}
-                                className={isSelected ? 'h-6 w-6 rounded-full object-cover border-1 border-white' : 'h-6 w-6 rounded-full object-cover border border-slate-300'}
-                              />
-                            ) : (
-                              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-white font-bold text-xs border-1 border-white ${
-                                membersData[2]?.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                              }`}>
-                                {membersData[2]?.fullName?.[0]?.toUpperCase() || '?'}
-                              </div>
-                            )}
-                          </div>
-                          <div className="h-6 w-6 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold text-xs border-1 border-white">
-                            +{extraMembers > 99 ? '99' : extraMembers}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  }
-                }
               } else {
-                // One-on-one conversation
-                const partnerId = conversation.members.find(member => member._id !== currentUserId)?._id
-                const partner = users.find(user => user._id === partnerId)
-                if (partner) {
-                  displayName = partner.fullName
-                  avatarElement = partner.avatar ? (
-                    <img
-                      src={partner.avatar}
-                      alt={`${partner.fullName}'s Avatar`}
-                      className={isSelected ? 'h-12 w-12 rounded-full object-cover border-1 border-white' : 'h-12 w-12 rounded-full object-cover border-1 border-slate-300'}
-                    />
-                  ) : (
-                    <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
-                      partner.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                    }`}>
-                      {partner.fullName?.[0]?.toUpperCase() || '?'}
-                    </div>
-                  )
-                  isOnline = partner.isOnline
-                } else {
-                  avatarElement = (
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                      ?
-                    </div>
-                  )
-                }
+                const partner = getPartnerInfo(conversation)
+                displayName = partner?.fullName || 'Unknown'
               }
 
               // Dynamic classes for styling
@@ -352,8 +197,6 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
               } else {
                 containerClass += 'hover:bg-slate-100/80 hover:shadow-md'
               }
-
-              let avatarClass = 'flex items-center justify-center '
 
               let nameClass = 'font-semibold truncate '
               nameClass += isSelected ? 'text-white' : 'text-slate-900'
@@ -365,13 +208,32 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
               return (
                 <li key={index} className={containerClass} onClick={() => onSelectConversation(conversation)}>
                   <div className="flex items-center space-x-3">
-                    {/* Avatar */}
+                    {/* Avatar - Use GroupAvatar for groups, Avatar for 1-1 conversations */}
                     <div className="relative">
-                      <div className={avatarClass}>
-                        {avatarElement}
-                      </div>
-                      {isOnline && !isGroup && (
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-1 border-white rounded-full"></div>
+                      {isGroup ? (
+                        <GroupAvatar
+                          conversation={conversation}
+                          users={users}
+                          currentUser={user}
+                          size="md"
+                          isSelected={isSelected}
+                          showOnlineStatus={false}
+                        />
+                      ) : (
+                        <div className="flex items-center">
+                          <Avatar
+                            userInfo={getPartnerInfo(conversation) || { fullName: 'Unknown', avatar: null, color: 'bg-gradient-to-r from-indigo-500 to-purple-500' }}
+                            size="small"
+                            className={`${isSelected ? 'border-white' : 'border-slate-300'} border-1`}
+                          />
+                          {/* Online status indicator for 1-1 conversations */}
+                          {(() => {
+                            const partner = getPartnerInfo(conversation)
+                            return partner?.isOnline && (
+                              <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                            )
+                          })()}
+                        </div>
                       )}
                     </div>
 
@@ -404,7 +266,7 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                           }
 
                           if (content && content.length > 10) {
-                            return `${prefix}${content.slice(0, 10)}... ${timeAgo}`
+                            return `${prefix}${content.slice(0, 10)}... • ${timeAgo}`
                           } else {
                             return `${prefix}${content} • ${timeAgo}`
                           }
@@ -455,7 +317,7 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                 <input
                   type="text"
                   placeholder="Search users..."
-                  className="w-full pl-12 pr-4 py-3 border-1 border-slate-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all duration-200 text-slate-700 placeholder-slate-400"
+                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all duration-200 text-slate-700 placeholder-slate-400"
                   value={searchItemModal}
                   onChange={(e) => setSearchItemModal(e.target.value)}
                 />
@@ -507,12 +369,12 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                     >
                       <div className="flex items-center space-x-4">
                         <div className="relative">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg transform group-hover:scale-105 transition-transform duration-200 ${
-                            user.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                          }`}>
-                            {user.fullName?.[0]?.toUpperCase() || '?'}
-                          </div>
-                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-1 border-white"></div>
+                          <Avatar
+                            userInfo={user}
+                            size="small"
+                            className="group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                         </div>
                         <div className="flex-1">
                           <span className="font-semibold text-slate-800 group-hover:text-purple-700 transition-colors duration-200">
@@ -584,7 +446,7 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                 <input
                   type="text"
                   placeholder="Enter group name..."
-                  className="w-full border-1 border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all duration-200 text-slate-700 placeholder-slate-400"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all duration-200 text-slate-700 placeholder-slate-400"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   required
@@ -598,7 +460,7 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                   <input
                     type="text"
                     placeholder="Search members..."
-                    className="w-full pl-12 pr-4 py-3 border-1 border-slate-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all duration-200 text-slate-700 placeholder-slate-400"
+                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all duration-200 text-slate-700 placeholder-slate-400"
                     value={searchItemModal}
                     onChange={(e) => setSearchItemModal(e.target.value)}
                   />
@@ -619,13 +481,13 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                 ) : (
                   <ul className="space-y-3">
                     {modalUsers.map(user => {
-                      const isSelected = selectedUsers.some(selected => selected._id === user._id)
+                      const isUserSelected = selectedUsers.some(selected => selected._id === user._id)
                       return (
                         <li
                           key={user._id}
                           className="group p-4 bg-slate-50 rounded-2xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 hover:shadow-md cursor-pointer transition-all duration-200 border border-transparent hover:border-purple-200"
                           onClick={() => {
-                            if (isSelected) {
+                            if (isUserSelected) {
                               setSelectedUsers(selectedUsers.filter(selected => selected._id !== user._id))
                             } else {
                               setSelectedUsers([...selectedUsers, user])
@@ -635,12 +497,12 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                           <div className="flex items-center space-x-4">
                             {/* Avatar */}
                             <div className="relative">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg transform group-hover:scale-105 transition-transform duration-200 ${
-                                user.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                              }`}>
-                                {user.fullName?.[0]?.toUpperCase() || '?'}
-                              </div>
-                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-1 border-white"></div>
+                              <Avatar
+                                userInfo={user}
+                                size="small"
+                                className="group-hover:scale-105 transition-transform duration-200"
+                              />
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                             </div>
 
                             {/* User Info */}
@@ -649,13 +511,13 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                                 {user.fullName}
                               </span>
                               <p className="text-sm text-slate-500 mt-1">
-                                {isSelected ? 'Selected for group' : 'Click to add to group'}
+                                {isUserSelected ? 'Selected for group' : 'Click to add to group'}
                               </p>
                             </div>
 
                             {/* Status Icon */}
-                            <div className={`transition-all duration-200 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                              {isSelected ? (
+                            <div className={`transition-all duration-200 ${isUserSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                              {isUserSelected ? (
                                 <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
                                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
