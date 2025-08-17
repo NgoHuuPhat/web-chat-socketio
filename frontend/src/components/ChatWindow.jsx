@@ -22,7 +22,7 @@ const ChatWindow = ({
   onUnpinMessage,
   uploading,
   onToggleMembersSidebar
- }) => {
+}) => {
   const [newMessage, setNewMessage] = useState('')
   const [activeMessageMenu, setActiveMessageMenu] = useState(null)
   const [showAllPinned, setshowAllPinned] = useState(false)
@@ -39,6 +39,7 @@ const ChatWindow = ({
   const emojiPickerRef = useRef(null)
   const messagesMenuRef = useRef(null)
   const pinnedMessagesRef = useRef(null)
+  const messageInputRef = useRef(null)
 
   // Refs for click outside detection
   useClickOutside(emojiPickerRef, () => setShowEmojiPicker(false), showEmojiPicker)
@@ -53,7 +54,6 @@ const ChatWindow = ({
       setPreviewUrls(prev => [...prev, URL.createObjectURL(audioFile)])
     }
   })
-
   useEffect(() => {
     let timer
     if (isRecording) {
@@ -65,6 +65,16 @@ const ChatWindow = ({
     }
     return () => clearInterval(timer)
   }, [isRecording])
+
+  useEffect(() => {
+    if(selectedConversation){
+      if(messageInputRef.current){
+        setTimeout(() => {
+          messageInputRef.current.focus()
+        }, 50)
+      }
+    }
+  }, [selectedConversation])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
@@ -88,7 +98,7 @@ const ChatWindow = ({
       return null
     })
 
-    event.target.value =  null
+    event.target.value = null
     setSelectedFiles(prev => [...prev, ...files])
     setPreviewUrls(prev => [...prev, ...newPreviewsUrls])
   }
@@ -116,15 +126,46 @@ const ChatWindow = ({
       previewUrls.forEach(url => URL.revokeObjectURL(url))
       setSelectedFiles([])
       setPreviewUrls([])
+
+      return
     }
     
     if(newMessage.trim()) {
       onSendMessage(newMessage)
       setNewMessage('')
+      if (messageInputRef.current) {
+        messageInputRef.current.innerText = ''
+      }
     }
   }
 
-  // helper function
+  // Handle input in contentEditable div
+  const handleInput = () => {
+    if (messageInputRef.current) {
+      setNewMessage(messageInputRef.current.innerText)
+    }
+  }
+
+  // Handle key down in contentEditable div
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !uploading && !isRecording) {
+      e.preventDefault()
+      if (newMessage.trim() || selectedFiles.length > 0) {
+        handleSendClick()
+      }
+    }
+  }
+
+  // Handle emoji selection
+  const handleEmojiClick = (emojiData) => {
+    setNewMessage((prev) => prev + emojiData.emoji)
+    if (messageInputRef.current) {
+      messageInputRef.current.innerText += emojiData.emoji
+    }
+    setShowEmojiPicker(false)
+  }
+
+  // Helper function
   const getFileIcon  = (file) => {
     if (file.type.startsWith('image/')) return <Image className="h-4 w-4" />
     if (file.type.startsWith('video/')) return <Video className="h-4 w-4" />
@@ -301,7 +342,7 @@ const ChatWindow = ({
             </button>
             <button 
               className="p-3 cursor-pointer hover:bg-slate-100 rounded-2xl transition-colors"
-                onClick={onToggleMembersSidebar}
+              onClick={onToggleMembersSidebar}
             >
               <Info className="h-5 w-5" />
             </button>
@@ -340,57 +381,57 @@ const ChatWindow = ({
 
                   if (type === 'file') return (
                     <>
-                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                      <div className="text-sm text-slate-800 truncate max-w-[85%]">
                         <span className="font-medium">{msg.senderName}</span>: {msg.text}
-                      </p>
+                      </div>
                       <FileText className="h-4 w-4 text-purple-500" />
-                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                      <div className="text-sm text-slate-800 truncate max-w-[85%]">
                         File • {originalName}
-                      </p>
+                      </div>
                     </>
                   )
 
                   if (type === 'video') return (
                     <>
-                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                      <div className="text-sm text-slate-800 truncate max-w-[85%]">
                         <span className="font-medium">{msg.senderName}</span>: {msg.text}
-                      </p>
+                      </div>
                       <FileVideo className="h-4 w-4 text-purple-500" />
-                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                      <div className="text-sm text-slate-800 truncate max-w-[85%]">
                         Video • {originalName}
-                      </p>
+                      </div>
                     </>
                   )
 
                   if (type === 'image') return (
                     <>
-                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                      <div className="text-sm text-slate-800 truncate max-w-[85%]">
                         <span className="font-medium">{msg.senderName}</span>: {msg.text}
-                      </p>
+                      </div>
                       <FileImage className="h-4 w-4 text-purple-500" />
-                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                      <div className="text-sm text-slate-800 truncate max-w-[85%]">
                         Image • {originalName}
-                      </p>
+                      </div>
                     </>
                   )
 
                   if (type === 'audio') return (
                     <>
-                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                      <div className="text-sm text-slate-800 truncate max-w-[85%]">
                         <span className="font-medium">{msg.senderName}</span>: {msg.text}
-                      </p>
+                      </div>
                       <Mic className="h-4 w-4 text-purple-500" />
-                      <p className="text-sm text-slate-800 truncate max-w-[85%]">
+                      <div className="text-sm text-slate-800 truncate max-w-[85%]">
                         Audio • {originalName}
-                      </p>
+                      </div>
                     </>
                   )
 
                   return null
                 })() : (
-                  <p className="text-sm text-slate-800 truncate">
+                  <div className="text-sm text-slate-800 truncate">
                     <span className="font-medium">{msg.senderName}</span>: {msg.text}
-                  </p>
+                  </div>
                 )}
               </div>
 
@@ -405,7 +446,6 @@ const ChatWindow = ({
                 Unpin
               </button>
             </div>
-
           ))}
 
           {/* Toggle */}
@@ -437,13 +477,13 @@ const ChatWindow = ({
                           : 'bg-[rgb(240,240,240)] text-black shadow-slate-200/50 px-6 py-4 border border-slate-200/50'
                   }`}>
                   {msg.deleted ? (
-                    <p className="text-sm">This message has been recalled.</p>
+                    <div className="text-sm">This message has been recalled.</div>
                   ) : msg.messageType === 'media' ? (
                     renderMediaMessage(msg)
                   ) : (
-                    <p className="text-sm">{msg.text}</p>
+                    <div className="text-sm break-words whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: msg.text }} />
                   )}
-                  <p 
+                  <div 
                     className={`
                       text-xs mt-2 
                       ${msg.deleted 
@@ -456,7 +496,7 @@ const ChatWindow = ({
                       }`}
                   >
                     {msg.time}
-                  </p>
+                  </div>
                 </div>
 
                 {/* Message Menu Button */}
@@ -606,8 +646,8 @@ const ChatWindow = ({
                   <X className="h-3 w-3" />
                 </button>
               </div>
-              ))}
-            </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -634,22 +674,44 @@ const ChatWindow = ({
             </button>
           </div>
           <div className="flex-1 relative">
-            <input
-              type="text"
-              className="w-full border border-slate-200/50 rounded-3xl px-6 py-2 bg-slate-100/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:bg-white transition-all duration-200 placeholder-slate-500"
-              placeholder={isRecording ? `${status}... (${formatRecordingTime(recordingTime)})` : 'Type a message...'}
-              value={newMessage}
-              disabled={uploading || isRecording || selectedFiles.length > 0}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e)=>{
-                if (e.key === 'Enter' && !uploading && !isRecording) {
-                  if (newMessage.trim() || selectedFiles.length > 0) {
-                    handleSendClick()
-                  }
-                }
-              }}
-            />
-            <div className="absolute inset-y-0 flex item-centers right-4" ref={emojiPickerRef}>
+            <div className="w-full border border-slate-200/50 rounded-3xl bg-slate-100/50 focus-within:ring-2 focus-within:ring-purple-500/50 focus-within:bg-white transition-all duration-200 overflow-hidden">
+              {/* Placeholder overlay */}
+              {!isRecording && (!newMessage || newMessage.trim() === '') && (
+                <div className="absolute inset-0 flex items-start px-6 py-3 pointer-events-none">
+                  <span className="text-slate-500">Type a message...</span>
+                </div>
+              )}
+              
+              <div
+                ref={messageInputRef}
+                contentEditable={!uploading && !isRecording && selectedFiles.length === 0}
+                className="
+                  w-full px-6 py-3 pr-12
+                  focus:outline-none 
+                  min-h-[44px] max-h-32 overflow-y-auto 
+                  break-words whitespace-pre-wrap overflow-wrap-anywhere
+                  [&::-webkit-scrollbar]:w-[4px] 
+                  [&::-webkit-scrollbar-thumb]:bg-slate-300
+                  [&::-webkit-scrollbar-thumb]:rounded-full
+                "
+                style={{
+                  wordWrap: 'break-word',
+                  wordBreak: 'break-all',
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'anywhere'
+                }}
+                onInput={handleInput}
+                onKeyDown={handleKeyDown}
+              >
+              </div>
+            </div>
+            
+            {isRecording && (
+              <div className="absolute inset-0 flex items-center px-8 pointer-events-none bg-slate-50 rounded-3xl">
+                <span className="text-slate-500">{`${status}... (${formatRecordingTime(recordingTime)})`}</span>
+              </div>
+            )}
+            <div className="absolute inset-y-0 flex items-center right-4" ref={emojiPickerRef}>
               <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} disabled={uploading}>
                 <Smile className={`h-5 cursor-pointer w-5 ${showEmojiPicker ? 'text-pink-700' : 'text-gray-500'}`} />
               </button>
@@ -657,10 +719,7 @@ const ChatWindow = ({
               {showEmojiPicker && (
                 <div className="absolute bottom-full right-0 z-50">
                   <EmojiPicker
-                    onEmojiClick={(emojiData) => {
-                      setNewMessage((prev) => prev + emojiData.emoji)
-                      setShowEmojiPicker(false)
-                    }}
+                    onEmojiClick={handleEmojiClick}
                   />
                 </div>
               )}
@@ -677,7 +736,7 @@ const ChatWindow = ({
               <Mic className="h-5 w-5" />
             </button>
             <button
-              onClick={()=>{
+              onClick={() => {
                 if ((newMessage.trim() || selectedFiles.length > 0) && !uploading) {
                   handleSendClick()
                 }
@@ -685,7 +744,7 @@ const ChatWindow = ({
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer"
               disabled={uploading}
             >
-              {uploading ? (<Loader2 className="h-5 w-5 animate-spin" />) : <Send className="h-5 w-5" />}
+              {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </button>
           </div>
         </div>
