@@ -93,7 +93,7 @@ class MessageController {
             if (!conversationId) {
                 return res.status(400).json({ message: 'Conversation ID is required.' })
             }   
-            const messages = await Message.findWithDeleted({ conversationId }).populate('seenBy.userId', 'fullName')
+            const messages = await Message.findWithDeleted({ conversationId }).populate('seenBy.userId', 'fullName avatar')
 
             res.status(200).json(messages)
         } catch (error) {

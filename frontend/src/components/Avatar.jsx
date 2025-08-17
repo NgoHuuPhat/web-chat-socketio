@@ -9,7 +9,7 @@ const Avatar = ({ userInfo, onAvatarClick, size = 'large', className = '' }) => 
 
     return (
       <div className="relative group">
-        <div className={`rounded-full overflow-hidden bg-gradient-to-br from-pink-400 via-purple-500 to-blue-500 flex items-center justify-center text-white font-bold transition-all duration-500 hover:scale-110 hover:rotate-3 shadow-2xl shadow-purple-300/40 ${sizeClasses[size]} ${className}`}>
+        <div className={`rounded-full overflow-hidden bg-gradient-to-br from-pink-400 via-purple-500 to-blue-500 flex items-center justify-center text-white font-bold transition-all duration-500 shadow-2xl shadow-purple-300/40 ${sizeClasses[size]} ${className}`}>
           {userInfo.avatar && (
             <img 
               src={userInfo.avatar} 

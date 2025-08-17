@@ -6,6 +6,8 @@ import useClickOutside from '@/hooks/useClickOutside'
 import useAudioRecorder from '@/hooks/useAudioRecorder'
 import AudioPlayer from '@/components/AudioPlayer'
 import { toast } from 'react-toastify'
+import Avatar from '@/components/Avatar'
+import GroupAvatar from '@/components/GroupAvatar'
 
 const ChatWindow = ({ 
   users,
@@ -232,6 +234,9 @@ const ChatWindow = ({
     }
   }
 
+  // Get current user object
+  const currentUser = users.find(u => u._id === currentUserId) || { _id: currentUserId }
+
   if (!selectedConversation) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
@@ -251,7 +256,6 @@ const ChatWindow = ({
   const otherUser = users.find(u => u._id === otherUserId)
 
   const displayName = isGroup ? selectedConversation.groupName : otherUser?.fullName || 'Unknown'
-  const displayColor = isGroup ? 'bg-gradient-to-r from-purple-500 to-pink-500' : otherUser?.color || 'bg-slate-400'
   const isOnline = isGroup ? false : otherUser?.isOnline
   const lastOnline = isGroup ? null : otherUser?.lastOnline 
 
@@ -262,13 +266,25 @@ const ChatWindow = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="relative">
-              {otherUser?.avatar ? <img src={otherUser.avatar} alt={`${displayName || 'User'} Avatar`} className="h-12 w-12 rounded-full object-cover" /> : 
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-lg ${displayColor}`}>
-                  {displayName?.[0]?.toUpperCase() || '?'}
+              {isGroup ? (
+                <GroupAvatar
+                  conversation={selectedConversation}
+                  users={users}
+                  currentUser={currentUser}
+                  size="md"
+                  showOnlineStatus={false}
+                />
+              ) : (
+                <div className="flex items-center">
+                  <Avatar
+                    userInfo={otherUser || { fullName: displayName, avatar: null, color: 'bg-gradient-to-r from-indigo-500 to-purple-500' }}
+                    size="small"
+                    className="border border-slate-300"
+                  />
+                  {isOnline && (
+                    <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+                  )}
                 </div>
-              }
-              {isOnline && (
-                <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
               )}
             </div>
             <div>
@@ -526,17 +542,11 @@ const ChatWindow = ({
                 <div className="flex items-center mt-1 space-x-1 justify-end flex-wrap">
                   {msg.seenBy.slice(0, 5).map((user, index) => (
                     <div key={index} className="group relative" title={user.userId.fullName}>
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-md bg-slate-400">
-                        {user.avatarUrl ? (
-                          <img
-                            src={user.avatarUrl}
-                            alt={user.userId.fullName}
-                            className="w-full h-full rounded-full object-cover"
-                          />
-                        ) : (
-                          user.userId.fullName?.[0]?.toUpperCase() || '?'
-                        )}
-                      </div>
+                      <Avatar
+                        userInfo={user.userId}
+                        size=""
+                        className="w-4 h-4 text-xs"
+                      />
                       <div className="absolute bottom-full mb-2 right-0
                                       bg-gray-700 text-white text-xs rounded-lg px-2 py-1 
                                       opacity-0 group-hover:opacity-100 

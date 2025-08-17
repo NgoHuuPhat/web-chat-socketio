@@ -8,25 +8,21 @@ const GroupAvatar = ({
   showOnlineStatus = false 
 }) => {
   const isGroup = conversation.isGroup === true
-  
   const sizeConfig = {
     sm: {
       container: 'h-8 w-8',
       avatar: 'h-4 w-4',
       text: 'text-xs',
-      online: 'w-3 h-3'
     },
     md: {
       container: 'h-12 w-12',
       avatar: 'h-6 w-6',
-      text: 'text-lg',
-      online: 'w-4 h-4'
+      text: 'text-xs',
     },
     lg: {
       container: 'h-16 w-16',
       avatar: 'h-8 w-8',
-      text: 'text-xl',
-      online: 'w-5 h-5'
+      text: 'text-xs',
     }
   }
 
@@ -51,26 +47,19 @@ const GroupAvatar = ({
     const allMembers = conversation.members || []
     const totalMembers = allMembers.length
 
-    const membersData = allMembers.map(member => {
-      if (member._id === currentUser._id) {
-        return currentUser
-      }
-      return users.find(user => user._id === member._id) || member
-    })
-
-    const renderMemberAvatar = (memberData, index) => (
+    const renderMemberAvatar = (allMembers, index) => (
       <div key={index} className="relative">
-        {memberData?.avatar ? (
+        {allMembers?.avatar ? (
           <img
-            src={memberData.avatar}
-            alt={`${memberData.fullName}'s Avatar`}
+            src={allMembers.avatar}
+            alt={`${allMembers.fullName}'s Avatar`}
             className={`${config.avatar} rounded-full object-cover border ${borderClass}`}
           />
         ) : (
           <div className={`${config.avatar} rounded-full flex items-center justify-center text-white font-bold ${config.text} ${borderClass} ${
-            memberData?.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
+            allMembers?.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
           }`}>
-            {memberData?.fullName?.[0]?.toUpperCase() || '?'}
+            {allMembers?.fullName?.[0]?.toUpperCase() || '?'}
           </div>
         )}
       </div>
@@ -79,7 +68,7 @@ const GroupAvatar = ({
     if (totalMembers === 2) {
       return (
         <div className="flex space-x-[-4px]">
-          {membersData.slice(0, 2).map((memberData, idx) => renderMemberAvatar(memberData, idx))}
+          {allMembers.slice(0, 2).map((allMembers, idx) => renderMemberAvatar(allMembers, idx))}
         </div>
       )
     } else if (totalMembers === 3) {
@@ -87,11 +76,11 @@ const GroupAvatar = ({
         <div className="flex flex-col space-y-[-4px]">
           {/* First row: 1 avatar centered */}
           <div className="flex justify-center">
-            {renderMemberAvatar(membersData[0], 0)}
+            {renderMemberAvatar(allMembers[0], 0)}
           </div>
           {/* Second row: 2 avatars */}
           <div className="flex space-x-[-4px] justify-center">
-            {membersData.slice(1, 3).map((memberData, idx) => renderMemberAvatar(memberData, idx + 1))}
+            {allMembers.slice(1, 3).map((allMembers, idx) => renderMemberAvatar(allMembers, idx + 1))}
           </div>
         </div>
       )
@@ -102,11 +91,11 @@ const GroupAvatar = ({
         <div className="flex flex-col space-y-[-4px]">
           {/* First row: 2 avatars */}
           <div className="flex space-x-[-4px]">
-            {membersData.slice(0, 2).map((memberData, idx) => renderMemberAvatar(memberData, idx))}
+            {allMembers.slice(0, 2).map((allMembers, idx) => renderMemberAvatar(allMembers, idx))}
           </div>
           {/* Second row: 1 avatar + count */}
           <div className="flex space-x-[-4px]">
-            {renderMemberAvatar(membersData[2], 2)}
+            {renderMemberAvatar(allMembers[2], 2)}
             <div className={`${config.avatar} rounded-full bg-gray-400 flex items-center justify-center text-white font-bold ${config.text} border ${borderClass}`}>
               +{extraMembers > 99 ? '99' : extraMembers}
             </div>
