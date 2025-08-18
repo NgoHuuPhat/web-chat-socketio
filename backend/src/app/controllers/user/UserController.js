@@ -63,7 +63,7 @@ class UserController {
     // [PATCH] /api/users/profile
     async updateProfile(req, res) {
         try {
-            const dataUpdate = {...req.body}
+            const dataUpdate = {}
 
             if (req.body.fullName) {
                 dataUpdate.fullName = req.body.fullName.trim()

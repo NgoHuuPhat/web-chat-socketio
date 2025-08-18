@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Bell, Search, LogOut, Play, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Bell, Search, LogOut, Play, Check, X, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft, PenLine, Camera, LoaderCircle } from 'lucide-react'
 import { getTimeAgo } from '@/utils/formatTime'
 import { formatTime } from '@/utils/formatTime'
 import Avatar from '@/components/Avatar'
@@ -10,13 +10,19 @@ const MembersSidebar = ({
   users,
   currentUserId,
   media,
-  files
+  files,
+  onUpdateGroupName,
+  onUpdateGroupAvatar,
+  uploading
 }) => {
   const [showMembers, setShowMembers] = useState(false)
   const [showMedia, setShowMedia] = useState(false)
   const [showFiles, setShowFiles] = useState(false)
-  const [viewMode, setViewMode] = useState('normal') // 'normal', 'allMedia', 'allFiles'
+  const [viewMode, setViewMode] = useState('normal')
   const [previewItem, setPreviewItem] = useState(null)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [newGroupName, setNewGroupName] = useState(selectedConversation?.groupName || '')
+  const fileInputRef = useRef(null)
 
   const getOnlineStatus = (member) => {
     const userDetails = users.find(u => u._id === member._id) || {}
@@ -49,7 +55,6 @@ const MembersSidebar = ({
     }
   }
 
-  // Extract images and videos from media messages
   const mediaItems = Array.isArray(media)
     ? media
         .filter(message => message?.attachments && Array.isArray(message.attachments) && message.attachments.length > 0)
@@ -67,7 +72,6 @@ const MembersSidebar = ({
         )
     : []
 
-  // Extract files from messages with file attachments
   const fileItems = Array.isArray(files)
     ? files
         .filter(message => message?.attachments && Array.isArray(message.attachments) && message.attachments.length > 0)
@@ -91,6 +95,21 @@ const MembersSidebar = ({
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(1024))
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  const handleNameChange = () => {
+    if (newGroupName.trim() && newGroupName !== selectedConversation.groupName) {
+      onUpdateGroupName(selectedConversation._id, newGroupName)
+    }
+    setIsEditingName(false)
+  }
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      onUpdateGroupAvatar(selectedConversation._id, file)
+    }
+    fileInputRef.current.value = null 
   }
 
   const renderAllMediaView = () => (
@@ -187,10 +206,8 @@ const MembersSidebar = ({
     </div>
   )
 
-  // Get current user object
   const currentUser = users.find(u => u._id === currentUserId) || { _id: currentUserId }
 
-  // Non-group (1-1) conversation
   if (!selectedConversation.isGroup) {
     const otherUserId = selectedConversation.members.find(m => m._id !== currentUserId)?._id
     const userDetails = users.find(u => u._id === otherUserId) || selectedConversation.members.find(m => m._id === otherUserId) || {}
@@ -204,11 +221,18 @@ const MembersSidebar = ({
         ) : (
           <>
             <div className="flex flex-col items-center pt-6 pb-4 px-4 bg-gradient-to-b from-white to-gray-50">
-              <Avatar
-                userInfo={userDetails}
-                size="medium"
-                className="shadow-lg"
-              />
+              <div className="relative">
+                <Avatar
+                  userInfo={userDetails}
+                  size="medium"
+                  className="border-slate-200 border-2"
+                />
+                {uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/50 backdrop-blur-sm">
+                    <LoaderCircle className="h-6 w-6 text-purple-600 animate-spin" />
+                  </div>
+                )}
+              </div>
               <h2 className="mt-4 mb-1 text-xl font-semibold text-slate-900">{userDetails.fullName || userDetails.username || 'Unknown'}</h2>
               <p className="text-sm text-slate-500">{getOnlineStatus(userDetails)}</p>
             </div>
@@ -406,7 +430,6 @@ const MembersSidebar = ({
     )
   }
 
-  // Group conversation
   const members = selectedConversation.members || []
   const membersWithDetails = members.map(member => {
     const userDetails = users.find(u => u._id === member._id) || member
@@ -417,10 +440,6 @@ const MembersSidebar = ({
       lastOnline: userDetails.lastOnline,
     }
   })
-
-  const currentUserMember = members.find(m => m._id === currentUserId)
-  const isAdmin = currentUserMember?.role === 'admin' || currentUserMember?.role === 'owner'
-  const isOwner = currentUserMember?.role === 'owner'
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -438,14 +457,6 @@ const MembersSidebar = ({
     }
   }
 
-  const canManageMember = (targetMember) => {
-    if (!isAdmin) return false
-    if (targetMember._id === currentUserId) return false
-    if (targetMember.role === 'owner') return false
-    if (targetMember.role === 'admin' && !isOwner) return false
-    return true
-  }
-
   return (
     <aside className="w-80 bg-white border-l border-slate-200 flex flex-col h-full overflow-y-auto">
       {viewMode === 'allMedia' ? (
@@ -455,14 +466,86 @@ const MembersSidebar = ({
       ) : (
         <>
           <header className="pt-6 pb-4 px-4 border-b border-slate-200 flex flex-col items-center">
-            <GroupAvatar
-              conversation={selectedConversation}
-              users={users}
-              currentUser={currentUser}
-              size="lg"
-              showOnlineStatus={false}
-            />
-            <h2 className="font-semibold text-xl text-center mt-4 text-slate-900">{selectedConversation.groupName}</h2>
+            <div className={`relative ${uploading ? 'opacity-30' : ''}`}>
+              <GroupAvatar
+                conversation={selectedConversation}
+                users={users}
+                currentUser={currentUser}
+                size="lg"
+                showOnlineStatus={false}
+                className="border-4 border-white shadow-2xl shadow-purple-300/40"
+              />
+              {uploading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <LoaderCircle className="h-8 w-8 text-gray-700 animate-spin" />
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="absolute -bottom-1 -right-3 p-1 cursor-pointer bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                onClick={() => fileInputRef.current.click()}
+                disabled={uploading}
+                aria-label="Change group avatar"
+              >
+                <Camera className="w-4 h-4 text-slate-900" />
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                disabled={uploading}
+              />
+            </div>
+            <div className="flex items-center space-x-2 mt-2 py-2">
+              {isEditingName ? (
+                <div className="flex items-center w-full gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleNameChange()}
+                    autoFocus
+                    placeholder="Enter a group name..."
+                    className="flex-1 text-base font-medium text-slate-800 border border-slate-300 rounded-lg px-3 py-2
+                              focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-shadow"
+                  />
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handleNameChange}
+                      className="flex items-center cursor-pointer justify-center w-8 h-8 rounded-full bg-purple-100 hover:bg-purple-200 transition-colors"
+                    >
+                      <Check className="w-4 h-4 text-purple-600" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingName(false)
+                        setNewGroupName(selectedConversation.groupName)
+                      }}
+                      className="flex items-center cursor-pointer justify-center w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"
+                    >
+                      <X className="w-4 h-4 text-slate-500" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h2 className="font-semibold text-xl text-center text-slate-900">{selectedConversation.groupName}</h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingName(true)}
+                    className="p-1 bg-slate-100 cursor-pointer rounded-full hover:bg-slate-200 transition-colors"
+                    aria-label="Edit group name"
+                  >
+                    <PenLine className="w-4 h-4 text-slate-900" />
+                  </button>
+                </>
+              )}
+            </div>
           </header>
 
           <nav className="flex flex-col px-2 py-4 text-slate-700 flex-1">
@@ -513,7 +596,7 @@ const MembersSidebar = ({
                       </div>
                     </div>
 
-                    {canManageMember(member) && (
+                    {member._id !== currentUserId && (
                       <button
                         type="button"
                         className="p-2 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"

@@ -14,6 +14,7 @@ const Chat = () => {
   const [conversations, setConversations] = useState([])
   const [pinnedMessages, setPinnedMessages] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [showMembersSidebar, setShowMembersSidebar] = useState(false)
   const [skipAutoSelect, setSkipAutoSelect] = useState(false)
   const [media, setMedia] = useState([])
@@ -23,7 +24,86 @@ const Chat = () => {
   const { conversationId } = useParams()
   const navigate = useNavigate()
 
-  // socket event listeners
+  // Handle group name update
+  const handleUpdateGroupName = async (conversationId, groupName) => {
+    if (!conversationId || !groupName.trim()) {
+      toast.error('Group name cannot be empty')
+      return
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/name`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ groupName }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setConversations(prevConversations =>
+          prevConversations.map(conversation =>
+            conversation._id === conversationId
+              ? { ...conversation, groupName }
+              : conversation
+          )
+        )
+        setSelectedConversation(prev => ({ ...prev, groupName }))
+        socket.emit('update_group_name', { conversationId, groupName })
+        toast.success(data.message || 'Group name updated successfully')
+      } else {
+        toast.error(data.message || 'Failed to update group name')
+      }
+    } catch (error) {
+      console.error('Error updating group name:', error)
+      toast.error('Error updating group name')
+    }
+  }
+
+  // Handle group avatar update
+  const handleUpdateGroupAvatar = async (conversationId, file) => {
+    if (!conversationId || !file) {
+      toast.error('Please select an avatar image')
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      const formData = new FormData()
+      formData.append('avatarGroup', file)
+
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/avatar`, {
+        method: 'PATCH',
+        credentials: 'include',
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setConversations(prevConversations =>
+          prevConversations.map(conversation =>
+            conversation._id === conversationId
+              ? { ...conversation, groupAvatar: data.groupAvatar }
+              : conversation
+          )
+        )
+        setSelectedConversation(prev => ({ ...prev, groupAvatar: data.groupAvatar }))
+        socket.emit('update_group_avatar', { conversationId, groupAvatar: data.groupAvatar })
+        toast.success('Group avatar updated successfully')
+      } else {
+        toast.error(data.message || 'Failed to update group avatar')
+      }
+    } catch (error) {
+      console.error('Error updating group avatar:', error)
+      toast.error('Error updating group avatar')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  // Socket event listeners
   useEffect(() => {
     if (!socket || !selectedConversation) return
 
@@ -44,8 +124,7 @@ const Chat = () => {
         seenBy: message.seenBy || [],
         senderName: message.senderName || 'Unknown'
       }
-      // Update messages state with the new message
-      if( selectedConversation && selectedConversation._id === message.conversationId) {
+      if (selectedConversation && selectedConversation._id === message.conversationId) {
         setMessages(prevMessages => [...prevMessages, formattedMessage])
       }
 
@@ -67,7 +146,6 @@ const Chat = () => {
         }
       }
 
-      // Update conversations state when a new message is received
       setConversations(prevConversations => {
         const updatedConversations = prevConversations.map(conversation => {
           if (conversation._id === message.conversationId) {
@@ -96,7 +174,7 @@ const Chat = () => {
       })
     }
 
-    const handleNewMessageNotification = ( message ) => {
+    const handleNewMessageNotification = (message) => {
       setConversations(prevConversations => {
         const updatedConversations = prevConversations.map(conversation => {
           if (conversation._id === message.conversationId) {
@@ -115,7 +193,6 @@ const Chat = () => {
               },
             }
           }
-
           return conversation
         })
 
@@ -126,11 +203,11 @@ const Chat = () => {
       })
     }
 
-    const handleDeleteMessage = ({messageId, conversationId, messageType, attachments}) => {
-      if(selectedConversation && selectedConversation._id === conversationId) {
+    const handleDeleteMessage = ({ messageId, conversationId, messageType, attachments }) => {
+      if (selectedConversation && selectedConversation._id === conversationId) {
         setMessages(prevMessages => prevMessages.map(msg => msg._id === messageId ? { ...msg, deleted: true } : msg))
 
-        if(messageType === 'media' && attachments.length > 0) {
+        if (messageType === 'media' && attachments.length > 0) {
           setMedia(prevMedia => prevMedia.filter(media => media._id !== messageId))
           setFiles(prevFiles => prevFiles.filter(file => file._id !== messageId))
         }
@@ -164,7 +241,7 @@ const Chat = () => {
     }
 
     const handleSocketPinMessage = (data) => {
-      if(selectedConversation && selectedConversation._id === data.conversationId) {
+      if (selectedConversation && selectedConversation._id === data.conversationId) {
         setPinnedMessages(prevPinned => [
           ...prevPinned, 
           { 
@@ -176,13 +253,40 @@ const Chat = () => {
             attachments: data.attachments || [],
             messageType: data.messageType || 'text',
             deleted: data.deleted || false,
-        }])
+          }
+        ])
       }
     }
 
-    const handleSocketUnpinMessage = ({messageId, conversationId}) => {
-      if(selectedConversation && selectedConversation._id === conversationId) {
+    const handleSocketUnpinMessage = ({ messageId, conversationId }) => {
+      if (selectedConversation && selectedConversation._id === conversationId) {
         setPinnedMessages(prevPinned => prevPinned.filter(msg => msg._id !== messageId))
+      }
+    }
+
+    const handleUpdateGroupName = ({ conversationId, groupName }) => {
+      setConversations(prevConversations =>
+        prevConversations.map(conversation =>
+          conversation._id === conversationId
+            ? { ...conversation, groupName }
+            : conversation
+        )
+      )
+      if (selectedConversation && selectedConversation._id === conversationId) {
+        setSelectedConversation(prev => ({ ...prev, groupName }))
+      }
+    }
+
+    const handleUpdateGroupAvatar = ({ conversationId, groupAvatar }) => {
+      setConversations(prevConversations =>
+        prevConversations.map(conversation =>
+          conversation._id === conversationId
+            ? { ...conversation, groupAvatar }
+            : conversation
+        )
+      )
+      if (selectedConversation && selectedConversation._id === conversationId) {
+        setSelectedConversation(prev => ({ ...prev, groupAvatar }))
       }
     }
 
@@ -191,6 +295,8 @@ const Chat = () => {
     socket.on('message_deleted', handleDeleteMessage)
     socket.on('message_pinned', handleSocketPinMessage)
     socket.on('message_unpinned', handleSocketUnpinMessage)
+    socket.on('update_group_name', handleUpdateGroupName)
+    socket.on('update_group_avatar', handleUpdateGroupAvatar)
 
     return () => {
       socket.off('receive_message', handleReceiveMessage)
@@ -198,8 +304,9 @@ const Chat = () => {
       socket.off('message_deleted', handleDeleteMessage)
       socket.off('message_pinned', handleSocketPinMessage)
       socket.off('message_unpinned', handleSocketUnpinMessage)
+      socket.off('update_group_name', handleUpdateGroupName)
+      socket.off('update_group_avatar', handleUpdateGroupAvatar)
     }
-    
   }, [socket, selectedConversation, user.id])
 
   useEffect(() => {
@@ -220,7 +327,7 @@ const Chat = () => {
             ...user, 
             isOnline: false,
             lastOnline: new Date().toISOString()
-           } : user
+          } : user
         )
       )
     }
@@ -234,9 +341,9 @@ const Chat = () => {
     }
   }, [socket])
 
-  useEffect(()=>{
+  useEffect(() => {
     const fetchMediaFiles = async () => {
-      if(!conversationId) return
+      if (!conversationId) return
       try {
         const [resMedia, resFiles] = await Promise.all([
           fetch(`http://localhost:3000/api/conversations/${conversationId}/media`, {
@@ -266,23 +373,22 @@ const Chat = () => {
     fetchMediaFiles()
   }, [conversationId])
 
-  // get all users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-          const res = await fetch('http://localhost:3000/api/users', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include', 
-          })
-          const data = await res.json()
-          if (res.ok) {
-            setUsers(data)
-          } else {
-            console.error('Failed to fetch users:', data.message)
-          }
+        const res = await fetch('http://localhost:3000/api/users', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', 
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setUsers(data)
+        } else {
+          console.error('Failed to fetch users:', data.message)
+        }
       } catch (error) {
         console.error('Error fetching users:', error)
       }
@@ -291,7 +397,6 @@ const Chat = () => {
     fetchUsers()
   }, [])
 
-  // get all conversations
   useEffect(() => {
     const fetchConversations = async () => {
       try {
@@ -308,7 +413,6 @@ const Chat = () => {
         } else {
           console.error('Failed to fetch conversations:', data.message)
         }
-
       } catch (error) {
         console.error('Error fetching conversations:', error)
       }
@@ -341,7 +445,6 @@ const Chat = () => {
     }
   }
 
-  // Handle selecting a conversation
   const handleSelectConversation = async (conversation) => {
     if (!conversation || !conversation._id) {
       setSelectedConversation(conversation)
@@ -431,7 +534,7 @@ const Chat = () => {
   }
 
   useEffect(() => {
-    if(skipAutoSelect){
+    if (skipAutoSelect) {
       setSkipAutoSelect(false)
       return
     }
@@ -453,9 +556,8 @@ const Chat = () => {
     }
   }, [conversations, conversationId])
 
-  // handle sending a message 
   const handleSendMessage = async (messageText) => {
-    if(!selectedConversation || !messageText.trim()) return
+    if (!selectedConversation || !messageText.trim()) return
 
     const payload = {
       content: messageText,
@@ -469,7 +571,6 @@ const Chat = () => {
     }
 
     if (!selectedConversation._id) {
-      // Virtual conversation
       payload.receiverId = receiverUser?._id
     } else if (selectedConversation.isGroup) {
       payload.conversationId = selectedConversation._id
@@ -478,83 +579,81 @@ const Chat = () => {
     }
     
     try {
-        const res = await fetch('http://localhost:3000/api/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(payload),
-        })
-        const data = await res.json()
-        if (res.ok) {
-          const newMessage = {
-            _id: data.data._id,
-            sender: user.id,
-            text: data.data.content,
-            status: data.data.status || 'sent',
-            attachments: data.data.attachments || [],
-            messageType: data.data.messageType || 'text',
-            deleted: data.data.deleted || false,
-            createdAt: data.data.createdAt,
-            time: new Date(data.data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }
-
-          setMessages(prevMessages => [...prevMessages, newMessage])
-
-          // If the conversation is virtual
-          if (!selectedConversation._id && data.data.conversationId) {
-            const newConversation = {
-              ...selectedConversation,
-              _id: data.data.conversationId,
-              lastMessage: {
-                content: data.data.content,
-                senderId: user.id,
-                createdAt: data.data.createdAt,
-              },
-              unreadCount: { [user.id]: 0 }
-            }
-
-            setConversations(prevConversations => [newConversation, ...prevConversations])
-            setSelectedConversation(newConversation)
-            setSkipAutoSelect(true)
-            navigate(`/messages/${data.data.conversationId}`)
-          }
-
-          // Emit the message to the socket
-          socket.emit('send_message', {
-            conversationId: selectedConversation._id || data.data.conversationId,
-            ...newMessage,
-          })
-
-          const targetConversationId = selectedConversation._id || data.data.conversationId
-          setConversations(prevConversations => {
-            const updatedConversations = prevConversations.map(conversation => {
-              if (conversation._id === targetConversationId) {
-                return {
-                  ...conversation,
-                  lastMessage: {
-                    content: data.data.content,
-                    senderId: user.id,
-                    createdAt: data.data.createdAt,
-                  },
-                }
-              }
-              return conversation
-            })
-            
-            const targetConversation = updatedConversations.find(c => c._id === targetConversationId)
-            if (targetConversation) {
-              return [
-                targetConversation,
-                ...updatedConversations.filter(c => c._id !== targetConversationId)
-              ]
-            }
-            return updatedConversations
-          })
-        } else {
-          console.error('Failed to send message:', data.message)
+      const res = await fetch('http://localhost:3000/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const newMessage = {
+          _id: data.data._id,
+          sender: user.id,
+          text: data.data.content,
+          status: data.data.status || 'sent',
+          attachments: data.data.attachments || [],
+          messageType: data.data.messageType || 'text',
+          deleted: data.data.deleted || false,
+          createdAt: data.data.createdAt,
+          time: new Date(data.data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
+
+        setMessages(prevMessages => [...prevMessages, newMessage])
+
+        if (!selectedConversation._id && data.data.conversationId) {
+          const newConversation = {
+            ...selectedConversation,
+            _id: data.data.conversationId,
+            lastMessage: {
+              content: data.data.content,
+              senderId: user.id,
+              createdAt: data.data.createdAt,
+            },
+            unreadCount: { [user.id]: 0 }
+          }
+
+          setConversations(prevConversations => [newConversation, ...prevConversations])
+          setSelectedConversation(newConversation)
+          setSkipAutoSelect(true)
+          navigate(`/messages/${data.data.conversationId}`)
+        }
+
+        socket.emit('send_message', {
+          conversationId: selectedConversation._id || data.data.conversationId,
+          ...newMessage,
+        })
+
+        const targetConversationId = selectedConversation._id || data.data.conversationId
+        setConversations(prevConversations => {
+          const updatedConversations = prevConversations.map(conversation => {
+            if (conversation._id === targetConversationId) {
+              return {
+                ...conversation,
+                lastMessage: {
+                  content: data.data.content,
+                  senderId: user.id,
+                  createdAt: data.data.createdAt,
+                },
+              }
+            }
+            return conversation
+          })
+          
+          const targetConversation = updatedConversations.find(c => c._id === targetConversationId)
+          if (targetConversation) {
+            return [
+              targetConversation,
+              ...updatedConversations.filter(c => c._id !== targetConversationId)
+            ]
+          }
+          return updatedConversations
+        })
+      } else {
+        console.error('Failed to send message:', data.message)
+      }
     } catch (error) {
       console.error('Error sending message:', error)
     }
@@ -584,8 +683,7 @@ const Chat = () => {
         )
 
         const deletedMessage = messages.find(msg => msg._id === messageId)
-        if(deletedMessage && deletedMessage.messageType === 'media' && deletedMessage.attachments.length > 0) {
-          // Remove media files from state
+        if (deletedMessage && deletedMessage.messageType === 'media' && deletedMessage.attachments.length > 0) {
           setMedia(prevMedia => prevMedia.filter(media => media._id !== messageId))
           setFiles(prevFiles => prevFiles.filter(file => file._id !== messageId))
         }
@@ -617,7 +715,7 @@ const Chat = () => {
           conversationId: selectedConversation._id,
           messageType: deletedMessage?.messageType,
           attachments: deletedMessage?.attachments,
-         })
+        })
       } else {
         console.error('Failed to delete message:', data.message)
       }
@@ -633,7 +731,7 @@ const Chat = () => {
     }
 
     if (pinnedMessages.length >= 3) {
-      toast.warn('You can only pin up to 3 message!')
+      toast.warn('You can only pin up to 3 messages!')
       return
     }
 
@@ -680,7 +778,7 @@ const Chat = () => {
   }
 
   const handleUnpinMessage = async (msgId) => {
-    if(!selectedConversation || !msgId) {
+    if (!selectedConversation || !msgId) {
       console.error('No conversation selected or message ID is missing')
       return
     }
@@ -712,9 +810,8 @@ const Chat = () => {
     }
   }
 
-  // Handle file uploads
   const handleSendMediaMessage = async (files) => {
-    if(!selectedConversation || !files || files.length === 0) {
+    if (!selectedConversation || !files || files.length === 0) {
       console.error('No conversation selected or no files to upload')
       return
     }
@@ -724,13 +821,12 @@ const Chat = () => {
       const formData = new FormData()
       formData.append('conversationId', selectedConversation._id)
 
-      // Append each file to the FormData
       files.forEach(file => {
-        if(file.type.startsWith('image/')) {
+        if (file.type.startsWith('image/')) {
           formData.append('image', file)
-        } else if(file.type.startsWith('video/')) {
+        } else if (file.type.startsWith('video/')) {
           formData.append('video', file)
-        } else if(file.type.startsWith('audio/')) {
+        } else if (file.type.startsWith('audio/')) {
           formData.append('audio', file)
         } else {
           formData.append('file', file)
@@ -761,7 +857,7 @@ const Chat = () => {
         const mediaAttachments = data.attachments.filter(att => ['image', 'video'].includes(att.type))
         const fileAttachments = data.attachments.filter(att => ['file'].includes(att.type))
 
-        if(mediaAttachments.length > 0) {
+        if (mediaAttachments.length > 0) {
           setMedia(prevMedia => [
             {
               ...mediaMessages,
@@ -770,7 +866,7 @@ const Chat = () => {
           ])
         }
 
-        if(fileAttachments.length > 0) {
+        if (fileAttachments.length > 0) {
           setFiles(prevFiles => [
             {
               ...mediaMessages,
@@ -851,6 +947,9 @@ const Chat = () => {
             currentUserId={user.id}
             media={media}
             files={files}
+            onUpdateGroupName={handleUpdateGroupName}
+            onUpdateGroupAvatar={handleUpdateGroupAvatar}
+            uploading={uploadingAvatar}
           />
         )}
       </div>

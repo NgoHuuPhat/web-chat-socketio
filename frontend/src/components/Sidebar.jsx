@@ -177,7 +177,6 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <ul className="p-4 space-y-2">
             {filteredConversations.map((conversation, index) => {
-              console.log(conversation._id, selectedConversation?._id)
               const isSelected = selectedConversation?._id === conversation._id
               const isGroup = conversation.isGroup === true
 

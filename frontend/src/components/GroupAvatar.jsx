@@ -56,7 +56,7 @@ const GroupAvatar = ({
             className={`${config.avatar} rounded-full object-cover border ${borderClass}`}
           />
         ) : (
-          <div className={`${config.avatar} rounded-full flex items-center justify-center text-white font-bold ${config.text} ${borderClass} ${
+          <div className={`${config.avatar} rounded-full  flex items-center justify-center text-white font-bold ${config.text} ${borderClass} ${
             allMembers?.color || 'bg-gradient-to-r from-indigo-500 to-purple-500'
           }`}>
             {allMembers?.fullName?.[0]?.toUpperCase() || '?'}

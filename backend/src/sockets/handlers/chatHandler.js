@@ -34,11 +34,18 @@ module.exports = (io, socket) => {
     })
 
     socket.on('pin_message', (message) => {
-        console.log('Pinning message:', message)
         const { conversationId } = message
         socket.to(conversationId).emit('message_pinned', message )
     })
     socket.on('unpin_message', ({ messageId, conversationId }) => {
         socket.to(conversationId).emit('message_unpinned', { messageId, conversationId })
+    })
+
+    socket.on('update_group_avatar', ({ conversationId, groupAvatar }) => {
+        socket.to(conversationId).emit('update_group_avatar', { conversationId, groupAvatar })
+    })
+
+    socket.on('update_group_name', ({ conversationId, groupName }) => {
+        socket.to(conversationId).emit('update_group_name', { conversationId, groupName })
     })
 }

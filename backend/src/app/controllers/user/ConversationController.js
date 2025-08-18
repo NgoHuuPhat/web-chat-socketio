@@ -291,6 +291,42 @@ class ConversationController {
             res.status(500).json({ message: 'Internal server error' })
         }
     }
+
+    // [PATCH] /api/conversations/:conversationId/name
+    async updateConversationName(req, res) {
+        try {
+            const conversation = req.conversation
+            conversation.groupName = req.body.groupName.trim()
+            await conversation.save()
+
+            res.status(200).json({ message: 'Group name updated successfully!' })
+        } catch (error) {
+            console.error('Error updating group name:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [PATCH] /api/conversations/:conversationId/avatar
+    async updateConversationAvatar(req, res) {
+        try {
+            const conversation = req.conversation
+            if(!req.uploadResults || !req.uploadResults.secure_url) {
+                return res.status(400).json({ message: 'Avatar image is required.' })
+            }
+
+            conversation.groupAvatar = req.uploadResults.secure_url
+            await conversation.save()
+
+            res.status(200).json({ 
+                message: 'Group avatar updated successfully!',
+                groupAvatar: conversation.groupAvatar
+            })
+        } catch (error) {
+            console.error('Error updating group avatar:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
 }
 
 module.exports = new ConversationController()
