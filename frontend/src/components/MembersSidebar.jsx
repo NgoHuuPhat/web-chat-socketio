@@ -199,7 +199,7 @@ const MembersSidebar = ({
   const currentUser = users.find(u => u._id === currentUserId) || { _id: currentUserId }
 
   if (!selectedConversation.isGroup) {
-    const otherUserId = selectedConversation.members.find(m => m.user._id !== currentUserId)?.user._id
+    const otherUserId = selectedConversation.members.find(m => m.userId._id !== currentUserId)?.userId._id
     const userDetails = users.find(u => u._id === otherUserId)
 
     return (
@@ -422,7 +422,7 @@ const MembersSidebar = ({
 
   const members = selectedConversation.members || []
   const membersWithDetails = members.map(member => {
-    const userDetails = users.find(u => u._id === member.user._id) || member.user
+    const userDetails = users.find(u => u._id === member.userId._id) || member.userId
     return {
       ...member,
       ...userDetails,

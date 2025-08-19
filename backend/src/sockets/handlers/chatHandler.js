@@ -19,7 +19,7 @@ module.exports = (io, socket) => {
 
         if (conversation) {
             conversation.members.forEach(member => {
-                const memberId = member.user.toString()
+                const memberId = member.userId.toString()
                 if (memberId !== senderId) {
                     socket.to(memberId).emit('new_message_notification', {
                        ...message,
@@ -50,7 +50,7 @@ module.exports = (io, socket) => {
 
         if (conversation) {
             conversation.members.forEach(member => {
-                const memberId = member.user.toString()
+                const memberId = member.userId.toString()
                 if (memberId !== senderId) {
                     socket.to(memberId).emit('update_group_avatar', { conversationId, groupAvatar })
                 }
@@ -66,7 +66,7 @@ module.exports = (io, socket) => {
 
         if (conversation) {
             conversation.members.forEach(member => {
-                const memberId = member.user.toString()
+                const memberId = member.userId.toString()
                 if (memberId !== senderId) {
                     socket.to(memberId).emit('update_group_name', { conversationId, groupName })
                 }

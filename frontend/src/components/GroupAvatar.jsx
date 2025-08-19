@@ -49,10 +49,10 @@ const GroupAvatar = ({
 
     const renderMemberAvatar = (allMembers, index) => (
       <div key={index} className="relative">
-        {allMembers?.user.avatar ? (
+        {allMembers?.userId.avatar ? (
           <img
-            src={allMembers.user.avatar}
-            alt={`${allMembers.user.fullName}'s Avatar`}
+            src={allMembers.userId.avatar}
+            alt={`${allMembers.userId.fullName}'s Avatar`}
             className={`${config.avatar} rounded-full object-cover border ${borderClass}`}
           />
         ) : (

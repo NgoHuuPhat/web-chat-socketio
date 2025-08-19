@@ -127,7 +127,7 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
 
   // Helper function to get partner info for 1-1 conversations
   const getPartnerInfo = (conversation) => {
-    const partnerId = conversation.members.find(member => member.user._id !== currentUserId)?.user._id
+    const partnerId = conversation.members.find(member => member.userId._id !== currentUserId)?.userId._id
     return users.find(user => user._id === partnerId)
   }
 
@@ -343,7 +343,7 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                       onClick={() => {
                         const existingConversation = conversations.find(conversation => {
                           if (!conversation.isGroup) {
-                            return conversation.members.some(member => member.user._id === user._id)
+                            return conversation.members.some(member => member.userId._id === user._id)
                           }
                         })
 
@@ -354,8 +354,8 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                             _id: null,
                             isGroup: false,
                             members: [
-                              { user: { _id: currentUserId }, role: 'member', joinedAt: new Date() },
-                              { user: user, role: 'member', joinedAt: new Date() }
+                              { userId: { _id: currentUserId }, role: 'member', joinedAt: new Date() },
+                              { userId: user, role: 'member', joinedAt: new Date() }
                             ],
                             lastMessage: null,
                             unreadCount: { [currentUserId]: 0 },

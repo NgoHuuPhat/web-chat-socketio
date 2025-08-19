@@ -8,7 +8,8 @@ const ConversationSchema = new Schema(
         groupAvatar: { type: String, default: null },
         createdBy: { type: Schema.Types.ObjectId, ref: 'Account', default: null },
         members: [{ 
-            user: {
+            _id: false,
+            userId: {
                 type: Schema.Types.ObjectId, 
                 ref: 'Account', 
                 required: true

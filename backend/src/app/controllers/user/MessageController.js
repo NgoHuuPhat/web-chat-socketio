@@ -36,7 +36,7 @@ class MessageController {
 
                 conversation = await Conversation.findOne({
                     isGroup: false,
-                    'members.user': { $all: [senderId, receiverId]},
+                    'members.userId': { $all: [senderId, receiverId]},
                     'members': { $size: 2 }
                 })
 
@@ -44,8 +44,8 @@ class MessageController {
                     conversation = await Conversation.create({
                         isGroup: false,
                         members: [
-                            { user: senderId, role: 'owner' }, 
-                            { user: receiverId, role: 'member' }
+                            { userId: senderId, role: 'owner' }, 
+                            { userId: receiverId, role: 'member' }
                         ],
                     })
                 }
@@ -62,9 +62,9 @@ class MessageController {
 
             // Update unread count for the sender
             conversation.members.forEach(member => {
-                if( member.user.toString() !== senderId) {
-                    const currentCount = conversation.unreadCount.get(member.user.toString()) || 0
-                    conversation.unreadCount.set(member.user.toString(), currentCount + 1)
+                if( member.userId.toString() !== senderId) {
+                    const currentCount = conversation.unreadCount.get(member.userId.toString()) || 0
+                    conversation.unreadCount.set(member.userId.toString(), currentCount + 1)
                 }
             })
 
@@ -162,7 +162,7 @@ class MessageController {
                 return res.status(404).json({ message: 'Conversation not found.' })
             }
 
-            const isMember = conversation.members.some(member => member.user.toString() === senderId.toString())
+            const isMember = conversation.members.some(member => member.userId.toString() === senderId.toString())
             if(!isMember) {
                 return res.status(403).json({ message: 'You are not a member of this conversation.' })
             }
@@ -237,9 +237,9 @@ class MessageController {
 
             // Update unread count for the sender
             conversation.members.forEach(member => {
-                if (member.user.toString() !== senderId) {
-                    const currentCount = conversation.unreadCount.get(member.user.toString()) || 0
-                    conversation.unreadCount.set(member.user.toString(), currentCount + 1)
+                if (member.userId.toString() !== senderId) {
+                    const currentCount = conversation.unreadCount.get(member.userId.toString()) || 0
+                    conversation.unreadCount.set(member.userId.toString(), currentCount + 1)
                 }
             })
 

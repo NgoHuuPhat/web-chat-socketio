@@ -7,8 +7,8 @@ class ConversationController {
     async getAllConversations(req, res) {
         try {
             const userId = req.user.id
-            const conversations = await Conversation.find({'members.user': userId})
-            .populate('members.user')
+            const conversations = await Conversation.find({'members.userId': userId})
+            .populate('members.userId')
             .populate({
                 path: 'lastMessage',
                 options: { withDeleted: true }
@@ -33,8 +33,8 @@ class ConversationController {
             const regex = new RegExp(search, 'i') 
             const userId = req.user.id
 
-            const conversations = await Conversation.find({'members.user': userId})
-            .populate('members.user', 'fullName avatar')
+            const conversations = await Conversation.find({'members.userId': userId})
+            .populate('members.userId', 'fullName avatar')
             .populate('lastMessage')
 
             const filteredConversations = conversations.filter(conversation => {
@@ -42,7 +42,7 @@ class ConversationController {
                     return regex.test(conversation.groupName)
 
                 } else {
-                    const otherMember = conversation.members.find(member => member._id.toString() !== userId.toString())
+                    const otherMember = conversation.members.find(member => member.userId._id.toString() !== userId.toString())
 
                     if(otherMember) {
                         return regex.test(otherMember.fullName)
@@ -74,18 +74,18 @@ class ConversationController {
                 createdBy: userId,
                 members: [
                     {
-                        user: userId,
+                        userId: userId,
                         role: 'owner'
                     },
                     ...members.map(members_id => ({
-                        user: members_id,
+                        userId: members_id,
                         role: 'member'
                     }))
                 ],
             })
 
             const populatedConversation = await Conversation.findById(conversation._id)
-                .populate('members.user', 'fullName avatar')
+                .populate('members.userId', 'fullName avatar')
 
             res.status(201).json(populatedConversation)
 
