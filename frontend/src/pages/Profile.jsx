@@ -61,6 +61,7 @@ const Profile = () => {
 
       if (!res.ok) {
         console.error('Failed to upload file:', data.message)
+        return
       }
 
       setUserInfo(prev => ({ ...prev, avatar: data.user.avatar }))

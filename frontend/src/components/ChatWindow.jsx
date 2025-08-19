@@ -293,7 +293,7 @@ const ChatWindow = ({
   }
 
   const isGroup = selectedConversation.isGroup
-  const otherUserId = isGroup ? null : selectedConversation.members.find(m => m._id !== currentUserId)?._id
+  const otherUserId = isGroup ? null : selectedConversation.members.find(m => m.user._id !== currentUserId)?.user._id
   const otherUser = users.find(u => u._id === otherUserId)
 
   const displayName = isGroup ? selectedConversation.groupName : otherUser?.fullName || 'Unknown'

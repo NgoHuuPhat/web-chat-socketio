@@ -6,8 +6,23 @@ const ConversationSchema = new Schema(
         isGroup: { type: Boolean, default: false }, 
         groupName: { type: String, default: null },
         groupAvatar: { type: String, default: null },
-        members: [{ type: Schema.Types.ObjectId, ref: 'Account', required: true }],
         createdBy: { type: Schema.Types.ObjectId, ref: 'Account', default: null },
+        members: [{ 
+            user: {
+                type: Schema.Types.ObjectId, 
+                ref: 'Account', 
+                required: true
+            },
+            role: {
+                type: String,
+                enum: ['owner', 'admin', 'member'],
+                default: 'member'
+            },
+            joinedAt: {
+                type: Date,
+                default: Date.now
+            }
+         }],
         lastMessage: { type: Schema.Types.ObjectId, ref: 'Message', default: null },
         lastMessageTime: { type: Date, default: Date.now },
         pinnedMessageIds: [{ type: Schema.Types.ObjectId, ref: 'Message' }],

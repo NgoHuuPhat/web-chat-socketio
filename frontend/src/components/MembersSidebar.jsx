@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
 import { Bell, Search, LogOut, Play, Check, X, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft, PenLine, Camera, LoaderCircle } from 'lucide-react'
-import { getTimeAgo } from '@/utils/formatTime'
 import { formatTime } from '@/utils/formatTime'
 import Avatar from '@/components/Avatar'
 import GroupAvatar from '@/components/GroupAvatar'
@@ -23,15 +22,6 @@ const MembersSidebar = ({
   const [isEditingName, setIsEditingName] = useState(false)
   const [newGroupName, setNewGroupName] = useState(selectedConversation?.groupName || '')
   const fileInputRef = useRef(null)
-
-  const getOnlineStatus = (member) => {
-    const userDetails = users.find(u => u._id === member._id) || {}
-    const isOnline = userDetails.isOnline
-    const lastOnline = userDetails.lastOnline
-    if (isOnline) return 'Online'
-    if (lastOnline) return `Last seen ${getTimeAgo(lastOnline)}`
-    return 'Offline'
-  }
 
   const getFileIcon = (file) => {
     const extension = file.originalName?.split('.').pop()?.toLowerCase()
@@ -209,8 +199,8 @@ const MembersSidebar = ({
   const currentUser = users.find(u => u._id === currentUserId) || { _id: currentUserId }
 
   if (!selectedConversation.isGroup) {
-    const otherUserId = selectedConversation.members.find(m => m._id !== currentUserId)?._id
-    const userDetails = users.find(u => u._id === otherUserId) || selectedConversation.members.find(m => m._id === otherUserId) || {}
+    const otherUserId = selectedConversation.members.find(m => m.user._id !== currentUserId)?.user._id
+    const userDetails = users.find(u => u._id === otherUserId)
 
     return (
       <aside className="w-80 bg-white border-l border-slate-200 flex flex-col h-full overflow-y-auto">
@@ -234,7 +224,7 @@ const MembersSidebar = ({
                 )}
               </div>
               <h2 className="mt-4 mb-1 text-xl font-semibold text-slate-900">{userDetails.fullName || userDetails.username || 'Unknown'}</h2>
-              <p className="text-sm text-slate-500">{getOnlineStatus(userDetails)}</p>
+              <p className="text-sm text-slate-500">{userDetails.isOnline ? 'Online' : 'Offline'}</p>
             </div>
 
             <nav className="flex justify-center gap-2 space-x-4 mt-2 mb-4 text-slate-600 px-4">
@@ -432,7 +422,7 @@ const MembersSidebar = ({
 
   const members = selectedConversation.members || []
   const membersWithDetails = members.map(member => {
-    const userDetails = users.find(u => u._id === member._id) || member
+    const userDetails = users.find(u => u._id === member.user._id) || member.user
     return {
       ...member,
       ...userDetails,
@@ -440,14 +430,6 @@ const MembersSidebar = ({
       lastOnline: userDetails.lastOnline,
     }
   })
-
-  const getRoleIcon = (role) => {
-    switch (role) {
-      case 'owner': return <Crown className="w-4 h-4 text-yellow-500" />
-      case 'admin': return <Shield className="w-4 h-4 text-blue-500" />
-      default: return <User className="w-4 h-4 text-slate-400" />
-    }
-  }
 
   const getRoleLabel = (role) => {
     switch (role) {
@@ -582,16 +564,15 @@ const MembersSidebar = ({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center space-x-2">
                           <p className="font-medium truncate">
-                            {member.fullName || member.username}
+                            {member.fullName}
                             {member._id === currentUserId && (
                               <span className="text-xs text-slate-500 ml-1">(You)</span>
                             )}
                           </p>
-                          {getRoleIcon(member.role)}
                         </div>
                         <div className="flex items-center space-x-2 text-xs text-slate-500">
                           <p>{getRoleLabel(member.role)}</p>
-                          <p>{getOnlineStatus(member)}</p>
+                          <p>{ member.isOnline ? 'Online' : `Offline`}</p>
                         </div>
                       </div>
                     </div>
@@ -602,7 +583,7 @@ const MembersSidebar = ({
                         className="p-2 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
                         aria-label="Manage member"
                       >
-                        <MoreVertical className="w-5 h-5 text-slate-500" />
+                        <MoreVertical className="w-4 h-4 text-slate-500" />
                       </button>
                     )}
                   </div>

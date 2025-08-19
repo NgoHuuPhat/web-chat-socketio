@@ -563,7 +563,7 @@ const Chat = () => {
       content: messageText,
     }
     const members = selectedConversation.members || []
-    const receiverUser = members.find(member => member._id !== user.id)
+    const receiverUser = members.find(member => member.user._id !== user.id)?.user
 
     if (!receiverUser && !selectedConversation.isGroup) {
       console.error('Receiver not found in conversation members')

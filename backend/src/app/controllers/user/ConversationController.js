@@ -7,10 +7,8 @@ class ConversationController {
     async getAllConversations(req, res) {
         try {
             const userId = req.user.id
-            const conversations = await Conversation.find({
-                members: { $in: [userId] }
-            })
-            .populate('members')
+            const conversations = await Conversation.find({'members.user': userId})
+            .populate('members.user')
             .populate({
                 path: 'lastMessage',
                 options: { withDeleted: true }
@@ -35,10 +33,8 @@ class ConversationController {
             const regex = new RegExp(search, 'i') 
             const userId = req.user.id
 
-            const conversations = await Conversation.find({
-                members: { $in: [userId] },
-            })
-            .populate('members', 'fullName avatar')
+            const conversations = await Conversation.find({'members.user': userId})
+            .populate('members.user', 'fullName avatar')
             .populate('lastMessage')
 
             const filteredConversations = conversations.filter(conversation => {
@@ -76,11 +72,20 @@ class ConversationController {
                 groupName,
                 groupAvatar,
                 createdBy: userId,
-                members: [userId, ...members],
+                members: [
+                    {
+                        user: userId,
+                        role: 'owner'
+                    },
+                    ...members.map(members_id => ({
+                        user: members_id,
+                        role: 'member'
+                    }))
+                ],
             })
 
             const populatedConversation = await Conversation.findById(conversation._id)
-                .populate('members', 'fullName avatar')
+                .populate('members.user', 'fullName avatar')
 
             res.status(201).json(populatedConversation)
 
@@ -220,24 +225,6 @@ class ConversationController {
         }
         catch (error) {
             console.error('Error marking messages as seen:', error)
-            res.status(500).json({ message: 'Internal server error' })
-        }
-    }
-
-    // [GET] /api/conversations/:conversationId/members
-    async getConversationMembers(req, res) {
-        try {
-            const { conversationId } = req.params
-            const conversation = await Conversation.findById(conversationId)
-                .populate('members', 'fullName avatar')
-
-            if (!conversation) {
-                return res.status(404).json({ message: 'Conversation not found.' })
-            }
-
-            res.status(200).json(conversation.members)
-        } catch (error) {
-            console.error('Error fetching conversation members:', error)
             res.status(500).json({ message: 'Internal server error' })
         }
     }

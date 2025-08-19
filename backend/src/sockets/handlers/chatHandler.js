@@ -11,18 +11,19 @@ module.exports = (io, socket) => {
 
     socket.on('send_message', async (message) => {
         const { conversationId } = message
-        socket.to(conversationId).emit('receive_message', message)
-
-        // Emit to other users who have not opened the conversation
         const conversation = await Conversation.findById(conversationId)
         const senderId = socket.user.id.toString()
 
+        // Emit to other users who have not opened the conversation
+        socket.to(conversationId).emit('receive_message', message)
+
         if (conversation) {
-            conversation.members.forEach(memberId => {
-                if (memberId.toString() !== senderId) {
-                    socket.to(memberId.toString()).emit('new_message_notification', {
+            conversation.members.forEach(member => {
+                const memberId = member.user.toString()
+                if (memberId !== senderId) {
+                    socket.to(memberId).emit('new_message_notification', {
                        ...message,
-                       unreadCount: conversation.unreadCount.get(memberId.toString()) || 0
+                       unreadCount: conversation.unreadCount.get(memberId) || 0
                     })
                 }
             })
@@ -41,11 +42,35 @@ module.exports = (io, socket) => {
         socket.to(conversationId).emit('message_unpinned', { messageId, conversationId })
     })
 
-    socket.on('update_group_avatar', ({ conversationId, groupAvatar }) => {
+    socket.on('update_group_avatar', async ({ conversationId, groupAvatar }) => {        
+        const conversation = await Conversation.findById(conversationId)
+        const senderId = socket.user.id.toString()
+
         socket.to(conversationId).emit('update_group_avatar', { conversationId, groupAvatar })
+
+        if (conversation) {
+            conversation.members.forEach(member => {
+                const memberId = member.user.toString()
+                if (memberId !== senderId) {
+                    socket.to(memberId).emit('update_group_avatar', { conversationId, groupAvatar })
+                }
+            })
+        }
     })
 
-    socket.on('update_group_name', ({ conversationId, groupName }) => {
+    socket.on('update_group_name', async ({ conversationId, groupName }) => {
+        const conversation = await Conversation.findById(conversationId)
+        const senderId = socket.user.id.toString()
+        
         socket.to(conversationId).emit('update_group_name', { conversationId, groupName })
+
+        if (conversation) {
+            conversation.members.forEach(member => {
+                const memberId = member.user.toString()
+                if (memberId !== senderId) {
+                    socket.to(memberId).emit('update_group_name', { conversationId, groupName })
+                }
+            })
+        }
     })
 }

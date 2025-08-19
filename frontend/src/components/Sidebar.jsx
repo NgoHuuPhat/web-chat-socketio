@@ -127,7 +127,7 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
 
   // Helper function to get partner info for 1-1 conversations
   const getPartnerInfo = (conversation) => {
-    const partnerId = conversation.members.find(member => member._id !== currentUserId)?._id
+    const partnerId = conversation.members.find(member => member.user._id !== currentUserId)?.user._id
     return users.find(user => user._id === partnerId)
   }
 
