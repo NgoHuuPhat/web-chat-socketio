@@ -18,6 +18,5 @@ router.post('/media',
     uploadCloudinary,
     messageController.sendMediaMessage
 )
-// router.patch('/:id', messageController.updateMessage)
 
 module.exports = router

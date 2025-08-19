@@ -44,8 +44,8 @@ class MessageController {
                     conversation = await Conversation.create({
                         isGroup: false,
                         members: [
-                            { userId: senderId, role: 'owner' }, 
-                            { userId: receiverId, role: 'member' }
+                            { userId: senderId }, 
+                            { userId: receiverId }
                         ],
                     })
                 }

@@ -1,4 +1,3 @@
-const User = require('../../models/Account')
 const Conversation = require('../../models/Conversation')
 const Message = require('../../models/Message')
 class ConversationController {
@@ -310,6 +309,39 @@ class ConversationController {
             })
         } catch (error) {
             console.error('Error updating group avatar:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [PATCH] /api/conversations/:conversationId/leave
+    async leaveConversation(req, res) {
+        try {
+            const conversation = req.conversation
+            const userId = req.user.id
+            console.log(typeof userId)
+
+            const isMember = conversation.members.find(member => member.userId.toString() === userId)
+
+            if (!isMember) {
+                return res.status(403).json({ message: 'You are not a member of this conversation.' })
+            }
+
+            if(isMember && conversation.members.length === 1) {
+                return res.status(403).json({ message: 'You are the last member and cannot leave the conversation.', action: 'confirm_delete_conversation' })
+            } else if (isMember && conversation.members.length > 1) {
+                const newOwner = conversation.members
+                    .filter(member => member.userId.toString() !== userId.toString() && (member.role === 'admin' || member.role === 'member'))
+                    .sort((a,b) => a.joinedAt - b.joinedAt)[0]
+                if (newOwner) {
+                    newOwner.role = 'owner'
+                }
+                conversation.members = conversation.members.filter(member => member.userId.toString() !== userId.toString())
+            }
+            
+            await conversation.save()
+            res.status(200).json({ message: 'Left conversation successfully.' })
+        } catch (error) {
+            console.error('Error leaving conversation:', error)
             res.status(500).json({ message: 'Internal server error' })
         }
     }

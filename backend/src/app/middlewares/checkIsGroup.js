@@ -8,7 +8,7 @@ const checkIsGroup = async (req, res, next) => {
         }
 
         if(!conversation.isGroup) {
-            return res.status(400).json({ message: 'Only group conversations can have avatars updated.' })
+            return res.status(400).json({ message: 'This is not a group chat. This function cannot be performed.' })
         }
 
         req.conversation = conversation

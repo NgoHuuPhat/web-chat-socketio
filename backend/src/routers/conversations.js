@@ -21,8 +21,7 @@ router.patch('/:conversationId/avatar',
     uploadCloudinary, 
     conversationController.updateConversationAvatar
 )
+router.patch('/:conversationId/leave', checkIsGroup, conversationController.leaveConversation)
 router.get('/', conversationController.getAllConversations)
-// router.delete('/:id', messageController.deleteMessage)
-// router.patch('/:id', messageController.updateMessage)
 
 module.exports = router
