@@ -343,7 +343,7 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                       onClick={() => {
                         const existingConversation = conversations.find(conversation => {
                           if (!conversation.isGroup) {
-                            return conversation.members.some(member => member._id === user._id)
+                            return conversation.members.some(member => member.user._id === user._id)
                           }
                         })
 
@@ -354,8 +354,8 @@ const Sidebar = ({ users, selectedConversation, setConversations, conversations,
                             _id: null,
                             isGroup: false,
                             members: [
-                              { _id: currentUserId },
-                              user
+                              { user: { _id: currentUserId }, role: 'member', joinedAt: new Date() },
+                              { user: user, role: 'member', joinedAt: new Date() }
                             ],
                             lastMessage: null,
                             unreadCount: { [currentUserId]: 0 },
