@@ -19,89 +19,12 @@ const Chat = () => {
   const [skipAutoSelect, setSkipAutoSelect] = useState(false)
   const [media, setMedia] = useState([])
   const [files, setFiles] = useState([])
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [conversationToDelete, setConversationToDelete] = useState(null)
   const { user, socket } = useAuth()
 
   const { conversationId } = useParams()
   const navigate = useNavigate()
-
-  // Handle group name update
-  const handleUpdateGroupName = async (conversationId, groupName) => {
-    if (!conversationId || !groupName.trim()) {
-      toast.error('Group name cannot be empty')
-      return
-    }
-
-    try {
-      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/name`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ groupName }),
-      })
-
-      const data = await res.json()
-      if (res.ok) {
-        setConversations(prevConversations =>
-          prevConversations.map(conversation =>
-            conversation._id === conversationId
-              ? { ...conversation, groupName }
-              : conversation
-          )
-        )
-        setSelectedConversation(prev => ({ ...prev, groupName }))
-        socket.emit('update_group_name', { conversationId, groupName })
-        toast.success(data.message || 'Group name updated successfully')
-      } else {
-        toast.error(data.message || 'Failed to update group name')
-      }
-    } catch (error) {
-      console.error('Error updating group name:', error)
-      toast.error('Error updating group name')
-    }
-  }
-
-  // Handle group avatar update
-  const handleUpdateGroupAvatar = async (conversationId, file) => {
-    if (!conversationId || !file) {
-      toast.error('Please select an avatar image')
-      return
-    }
-
-    setUploadingAvatar(true)
-    try {
-      const formData = new FormData()
-      formData.append('avatarGroup', file)
-
-      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/avatar`, {
-        method: 'PATCH',
-        credentials: 'include',
-        body: formData,
-      })
-
-      const data = await res.json()
-      if (res.ok) {
-        setConversations(prevConversations =>
-          prevConversations.map(conversation =>
-            conversation._id === conversationId
-              ? { ...conversation, groupAvatar: data.groupAvatar }
-              : conversation
-          )
-        )
-        setSelectedConversation(prev => ({ ...prev, groupAvatar: data.groupAvatar }))
-        socket.emit('update_group_avatar', { conversationId, groupAvatar: data.groupAvatar })
-        toast.success('Group avatar updated successfully')
-      } else {
-        toast.error(data.message || 'Failed to update group avatar')
-      }
-    } catch (error) {
-      console.error('Error updating group avatar:', error)
-      toast.error('Error updating group avatar')
-    } finally {
-      setUploadingAvatar(false)
-    }
-  }
 
   // Socket event listeners
   useEffect(() => {
@@ -341,6 +264,159 @@ const Chat = () => {
     }
   }, [socket])
 
+  // Handle group name update
+  const handleUpdateGroupName = async (conversationId, groupName) => {
+    if (!conversationId || !groupName.trim()) {
+      toast.error('Group name cannot be empty')
+      return
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/name`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ groupName }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setConversations(prevConversations =>
+          prevConversations.map(conversation =>
+            conversation._id === conversationId
+              ? { ...conversation, groupName }
+              : conversation
+          )
+        )
+        setSelectedConversation(prev => ({ ...prev, groupName }))
+        socket.emit('update_group_name', { conversationId, groupName })
+        toast.success(data.message || 'Group name updated successfully')
+      } else {
+        toast.error(data.message || 'Failed to update group name')
+      }
+    } catch (error) {
+      console.error('Error updating group name:', error)
+      toast.error('Error updating group name')
+    }
+  }
+
+  // Handle group avatar update
+  const handleUpdateGroupAvatar = async (conversationId, file) => {
+    if (!conversationId || !file) {
+      toast.error('Please select an avatar image')
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      const formData = new FormData()
+      formData.append('avatarGroup', file)
+
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/avatar`, {
+        method: 'PATCH',
+        credentials: 'include',
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setConversations(prevConversations =>
+          prevConversations.map(conversation =>
+            conversation._id === conversationId
+              ? { ...conversation, groupAvatar: data.groupAvatar }
+              : conversation
+          )
+        )
+        setSelectedConversation(prev => ({ ...prev, groupAvatar: data.groupAvatar }))
+        socket.emit('update_group_avatar', { conversationId, groupAvatar: data.groupAvatar })
+        toast.success('Group avatar updated successfully')
+      } else {
+        toast.error(data.message || 'Failed to update group avatar')
+      }
+    } catch (error) {
+      console.error('Error updating group avatar:', error)
+      toast.error('Error updating group avatar')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  // Handle leave conversation
+  const handleLeaveConversation = async (conversationId) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/leave`, {
+        method: 'PATCH',
+        credentials: 'include',
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setConversations(prevConversations =>
+          prevConversations.filter(conversation => conversation._id !== conversationId)
+        )
+
+        if (conversations.length > 1) {
+          const nextConversation = conversations.find(c => c._id !== conversationId)
+          handleSelectConversation(nextConversation)
+        } else {
+          setSelectedConversation(null)
+          navigate('/messages')
+        }
+
+        toast.success(data.message || 'Left group successfully')
+        // Optionally emit socket event if implemented in backend
+      } else if (res.status === 403 && data.action === 'confirm_delete_conversation') {
+        setConversationToDelete(conversationId)
+        setShowDeleteConfirm(true)
+      } else {
+        toast.error(data.message || 'Failed to leave group')
+      }
+    } catch (error) {
+      console.error('Error leaving group:', error)
+      toast.error('Error leaving group')
+    }
+  }
+
+  // Handle delete conversation
+  const handleDeleteConversation = async (conversationId) => {
+    if (!conversationId) return
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/groups`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setConversations(prevConversations =>
+          prevConversations.filter(conversation => conversation._id !== conversationId)
+        )
+
+        if (conversations.length > 1) {
+          const nextConversation = conversations.find(c => c._id !== conversationId)
+          handleSelectConversation(nextConversation)
+        } else {
+          setSelectedConversation(null)
+          navigate('/messages')
+        }
+
+        toast.success(data.message || 'Group deleted successfully')
+        // Optionally emit socket event if implemented in backend
+      } else {
+        toast.error(data.message || 'Failed to delete group')
+      }
+    } catch (error) {
+      console.error('Error deleting group:', error)
+      toast.error('Error deleting group')
+    } finally {
+      setShowDeleteConfirm(false)
+      setConversationToDelete(null)
+    }
+  }
+
   useEffect(() => {
     const fetchMediaFiles = async () => {
       if (!conversationId) return
@@ -562,6 +638,7 @@ const Chat = () => {
     const payload = {
       content: messageText,
     }
+    
     const members = selectedConversation.members || []
     const receiverUser = members.find(member => member.userId._id !== user.id)?.userId
 
@@ -949,10 +1026,40 @@ const Chat = () => {
             files={files}
             onUpdateGroupName={handleUpdateGroupName}
             onUpdateGroupAvatar={handleUpdateGroupAvatar}
+            onLeaveConversation={handleLeaveConversation}
+            onDeleteConversation={handleDeleteConversation}
             uploading={uploadingAvatar}
           />
         )}
       </div>
+      
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h3 className="text-lg font-bold text-purple-600 mb-4">Delete Group?</h3>
+            <p className="text-sm text-slate-600 mb-6">You are the last member. Leaving will delete this group permanently. Are you sure?</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                className="px-4 cursor-pointer py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setConversationToDelete(null)
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 cursor-pointer py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                onClick={() => handleDeleteConversation(conversationToDelete)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

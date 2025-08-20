@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Bell, Search, LogOut, Play, Check, X, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft, PenLine, Camera, LoaderCircle } from 'lucide-react'
+import { Bell, Search, LogOut, Play, CircleX , Check, X, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft, PenLine, Camera, LoaderCircle } from 'lucide-react'
 import { formatTime } from '@/utils/formatTime'
 import Avatar from '@/components/Avatar'
 import GroupAvatar from '@/components/GroupAvatar'
@@ -12,7 +12,9 @@ const MembersSidebar = ({
   files,
   onUpdateGroupName,
   onUpdateGroupAvatar,
-  uploading
+  onLeaveConversation,
+  onDeleteConversation,
+  uploading, 
 }) => {
   const [showMembers, setShowMembers] = useState(false)
   const [showMedia, setShowMedia] = useState(false)
@@ -262,7 +264,7 @@ const MembersSidebar = ({
 
             <hr className="my-4 border-slate-200" />
 
-            <div className="flex flex-col px-2">
+            <div className="flex flex-col px-2 py-4 text-slate-700 flex-1">
               <div className="flex items-center justify-between">
                 <button
                   type="button"
@@ -382,9 +384,7 @@ const MembersSidebar = ({
               </button>
             </div>
 
-            <hr className="my-4 border-slate-200" />
-
-            <footer className="p-4">
+            <footer className="p-4 border-t border-slate-200">
               <button
                 type="button"
                 className="w-full cursor-pointer flex items-center justify-center space-x-2 py-2 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 shadow-sm transition-colors"
@@ -430,7 +430,7 @@ const MembersSidebar = ({
       lastOnline: userDetails.lastOnline,
     }
   })
-
+  const isOwner = membersWithDetails.some(member => member.userId._id === currentUser._id && member.role === 'owner')
   const getRoleLabel = (role) => {
     switch (role) {
       case 'owner': return 'Owner'
@@ -718,10 +718,21 @@ const MembersSidebar = ({
               <Trash className="w-5 h-5" />
               <span>Clear chat history</span>
             </button>
+            {isOwner && (
+              <button
+                type="button"
+                className="w-full mb-4 cursor-pointer flex items-center justify-center space-x-2 py-2 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 shadow-sm transition-colors"
+                onClick={() => onDeleteConversation(selectedConversation._id)}
+              >
+                <CircleX className="w-5 h-5" />
+                <span>Delete group</span>
+              </button>
+            )}
             <button
               type="button"
               className="w-full cursor-pointer flex items-center justify-center space-x-2 py-2 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 shadow-sm transition-colors"
               aria-label="Leave Group"
+              onClick={() => onLeaveConversation(selectedConversation._id)}
             >
               <LogOut className="w-5 h-5" />
               <span>Leave Group</span>

@@ -318,8 +318,6 @@ class ConversationController {
         try {
             const conversation = req.conversation
             const userId = req.user.id
-            console.log(typeof userId)
-
             const isMember = conversation.members.find(member => member.userId.toString() === userId)
 
             if (!isMember) {
@@ -329,19 +327,45 @@ class ConversationController {
             if(isMember && conversation.members.length === 1) {
                 return res.status(403).json({ message: 'You are the last member and cannot leave the conversation.', action: 'confirm_delete_conversation' })
             } else if (isMember && conversation.members.length > 1) {
-                const newOwner = conversation.members
-                    .filter(member => member.userId.toString() !== userId.toString() && (member.role === 'admin' || member.role === 'member'))
+                let newOwner = conversation.members
+                    .filter(member => member.userId.toString() !== userId && member.role === 'admin')
                     .sort((a,b) => a.joinedAt - b.joinedAt)[0]
+                
+                if(!newOwner){
+                    newOwner = conversation.members
+                        .filter(member => member.userId.toString() !== userId && member.role === 'member')
+                        .sort((a,b) => a.joinedAt - b.joinedAt)[0]
+                }
                 if (newOwner) {
                     newOwner.role = 'owner'
                 }
-                conversation.members = conversation.members.filter(member => member.userId.toString() !== userId.toString())
             }
-            
+
+            conversation.members = conversation.members.filter(member => member.userId.toString() !== userId)
             await conversation.save()
             res.status(200).json({ message: 'Left conversation successfully.' })
         } catch (error) {
             console.error('Error leaving conversation:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [DELETE] /api/conversations/:conversationId/groups
+    async deleteConversation(req, res) {
+        try {
+            const conversation = req.conversation
+            const userId = req.user.id
+
+            const isOwner = conversation.members.some(member => member.userId.toString() === userId && member.role === 'owner')
+            if (!isOwner) {
+                return res.status(403).json({ message: 'Only the group owner can delete the conversation.' })
+            }
+
+            await Message.deleteMany({ conversationId: conversation._id })
+            await conversation.deleteOne()
+            res.status(200).json({ message: 'Conversation deleted successfully.' })
+        } catch (error) {
+            console.error('Error deleting conversation:', error)
             res.status(500).json({ message: 'Internal server error' })
         }
     }

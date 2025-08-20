@@ -22,6 +22,8 @@ router.patch('/:conversationId/avatar',
     conversationController.updateConversationAvatar
 )
 router.patch('/:conversationId/leave', checkIsGroup, conversationController.leaveConversation)
+router.delete('/:conversationId/groups', checkIsGroup, conversationController.deleteConversation)
+// router.delete('/:conversationId/users/:userId', conversationController.deleteUserFromConversation)
 router.get('/', conversationController.getAllConversations)
 
 module.exports = router
