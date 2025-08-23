@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Bell, Search, LogOut, Play, CircleX , Check, X, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft, PenLine, Camera, LoaderCircle } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Bell, Search, LogOut, Play, CircleX, Check, X, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft, PenLine, Camera, LoaderCircle } from 'lucide-react'
 import { formatTime } from '@/utils/formatTime'
 import Avatar from '@/components/Avatar'
 import GroupAvatar from '@/components/GroupAvatar'
@@ -14,7 +14,8 @@ const MembersSidebar = ({
   onUpdateGroupAvatar,
   onLeaveConversation,
   onDeleteConversation,
-  uploading, 
+  onUpdateMemberRole,
+  uploading,
 }) => {
   const [showMembers, setShowMembers] = useState(false)
   const [showMedia, setShowMedia] = useState(false)
@@ -23,7 +24,30 @@ const MembersSidebar = ({
   const [previewItem, setPreviewItem] = useState(null)
   const [isEditingName, setIsEditingName] = useState(false)
   const [newGroupName, setNewGroupName] = useState(selectedConversation?.groupName || '')
+  const [dropdownStates, setDropdownStates] = useState(null)
+  const dropdownRef = useRef(null)
   const fileInputRef = useRef(null)
+
+  console.log(selectedConversation)
+
+  // Func to toggle dropdown for a specific member
+  const toggleDropdown = (memberId) => {
+    setDropdownStates(prev => (prev === memberId ? null : memberId))
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownStates(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const getFileIcon = (file) => {
     const extension = file.originalName?.split('.').pop()?.toLowerCase()
@@ -49,35 +73,35 @@ const MembersSidebar = ({
 
   const mediaItems = Array.isArray(media)
     ? media
-        .filter(message => message?.attachments && Array.isArray(message.attachments) && message.attachments.length > 0)
-        .flatMap(message =>
+        .filter((message) => message?.attachments && Array.isArray(message.attachments) && message.attachments.length > 0)
+        .flatMap((message) =>
           message.attachments
-            .filter(attachment => ['image', 'video'].includes(attachment?.type))
-            .map(attachment => ({
+            .filter((attachment) => ['image', 'video'].includes(attachment?.type))
+            .map((attachment) => ({
               _id: attachment._id || `${message._id}-${attachment.url}`,
               url: attachment.url,
               thumbnailUrl: attachment.thumbnailUrl || attachment.url,
               type: attachment.type,
               originalName: attachment.originalName || 'Untitled',
-              createdAt: message.createdAt
+              createdAt: message.createdAt,
             }))
         )
     : []
 
   const fileItems = Array.isArray(files)
     ? files
-        .filter(message => message?.attachments && Array.isArray(message.attachments) && message.attachments.length > 0)
-        .flatMap(message =>
+        .filter((message) => message?.attachments && Array.isArray(message.attachments) && message.attachments.length > 0)
+        .flatMap((message) =>
           message.attachments
-            .filter(attachment => ['file'].includes(attachment?.type))
-            .map(attachment => ({
+            .filter((attachment) => ['file'].includes(attachment?.type))
+            .map((attachment) => ({
               _id: attachment._id || `${message._id}-${attachment.url}`,
               url: attachment.url,
               type: attachment.type,
               originalName: attachment.originalName || 'Untitled',
               mimetype: attachment.mimetype,
               size: attachment.size,
-              createdAt: message.createdAt
+              createdAt: message.createdAt,
             }))
         )
     : []
@@ -86,7 +110,7 @@ const MembersSidebar = ({
     if (!bytes) return 'Unknown size'
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i]
   }
 
   const handleNameChange = () => {
@@ -101,7 +125,7 @@ const MembersSidebar = ({
     if (file) {
       onUpdateGroupAvatar(selectedConversation._id, file)
     }
-    fileInputRef.current.value = null 
+    fileInputRef.current.value = null
   }
 
   const renderAllMediaView = () => (
@@ -119,7 +143,7 @@ const MembersSidebar = ({
       </header>
       <section className="flex-1 p-4 grid grid-cols-2 gap-3 overflow-y-auto">
         {mediaItems.length > 0 ? (
-          mediaItems.map(item => (
+          mediaItems.map((item) => (
             <div
               key={item._id}
               className="flex flex-col items-center group cursor-pointer"
@@ -170,11 +194,12 @@ const MembersSidebar = ({
       </header>
       <section className="flex-1 p-4 space-y-3 cursor-pointer overflow-y-auto">
         {fileItems.length > 0 ? (
-          fileItems.map(item => (
-            <div key={item._id} className="flex items-center space-x-3 hover:bg-slate-100 rounded-lg p-3 shadow-sm transition-colors w-full cursor-pointer">
-              <div className="w-10 h-10 flex items-center justify-center">
-                {getFileIcon(item)}
-              </div>
+          fileItems.map((item) => (
+            <div
+              key={item._id}
+              className="flex items-center space-x-3 hover:bg-slate-100 rounded-lg p-3 shadow-sm transition-colors w-full cursor-pointer"
+            >
+              <div className="w-10 h-10 flex items-center justify-center">{getFileIcon(item)}</div>
               <div className="flex-1 min-w-0">
                 <a
                   href={item.url || '#'}
@@ -198,11 +223,11 @@ const MembersSidebar = ({
     </div>
   )
 
-  const currentUser = users.find(u => u._id === currentUserId) || { _id: currentUserId }
+  const currentUser = users.find((u) => u._id === currentUserId) || { _id: currentUserId }
 
   if (!selectedConversation.isGroup) {
-    const otherUserId = selectedConversation.members.find(m => m.userId._id !== currentUserId)?.userId._id
-    const userDetails = users.find(u => u._id === otherUserId)
+    const otherUserId = selectedConversation.members.find((m) => m.userId._id !== currentUserId)?.userId._id
+    const userDetails = users.find((u) => u._id === otherUserId)
 
     return (
       <aside className="w-80 bg-white border-l border-slate-200 flex flex-col h-full overflow-y-auto">
@@ -214,11 +239,7 @@ const MembersSidebar = ({
           <>
             <div className="flex flex-col items-center pt-6 pb-4 px-4 bg-gradient-to-b from-white to-gray-50">
               <div className="relative">
-                <Avatar
-                  userInfo={userDetails}
-                  size="medium"
-                  className="border-slate-200 border-2"
-                />
+                <Avatar userInfo={userDetails} size="medium" className="border-slate-200 border-2" />
                 {uploading && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/50 backdrop-blur-sm">
                     <LoaderCircle className="h-6 w-6 text-purple-600 animate-spin" />
@@ -280,7 +301,7 @@ const MembersSidebar = ({
                 <>
                   <section className="grid grid-cols-4 gap-2 py-2 px-2">
                     {mediaItems.length > 0 ? (
-                      mediaItems.slice(0, 8).map(item => (
+                      mediaItems.slice(0, 8).map((item) => (
                         <div
                           key={item._id}
                           className="flex flex-col items-center group cursor-pointer"
@@ -338,11 +359,9 @@ const MembersSidebar = ({
                 <>
                   <section className="space-y-2">
                     {fileItems.length > 0 ? (
-                      fileItems.slice(0, 3).map(item => (
+                      fileItems.slice(0, 3).map((item) => (
                         <div key={item._id} className="flex items-center space-x-3 hover:bg-slate-100 rounded-md py-2 px-2 cursor-pointer">
-                          <div className="w-8 h-8 flex items-center justify-center">
-                            {getFileIcon(item)}
-                          </div>
+                          <div className="w-8 h-8 flex items-center justify-center">{getFileIcon(item)}</div>
                           <div className="flex-1 min-w-0">
                             <a
                               href={item.url || '#'}
@@ -431,6 +450,7 @@ const MembersSidebar = ({
     }
   })
   const isOwner = membersWithDetails.some(member => member.userId._id === currentUser._id && member.role === 'owner')
+  const isAdmin = membersWithDetails.some(member => member.userId._id === currentUser._id && member.role === 'admin')
   const getRoleLabel = (role) => {
     switch (role) {
       case 'owner': return 'Owner'
@@ -462,7 +482,6 @@ const MembersSidebar = ({
                   <LoaderCircle className="h-8 w-8 text-gray-700 animate-spin" />
                 </div>
               )}
-
               <button
                 type="button"
                 className="absolute -bottom-1 -right-3 p-1 cursor-pointer bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
@@ -488,11 +507,10 @@ const MembersSidebar = ({
                     type="text"
                     value={newGroupName}
                     onChange={(e) => setNewGroupName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleNameChange()}
+                    onKeyDown={(e) => e.key === 'Enter' && handleNameChange()}
                     autoFocus
-                    placeholder="Enter a group name..."
-                    className="flex-1 text-base font-medium text-slate-800 border border-slate-300 rounded-lg px-3 py-2
-                              focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-shadow"
+                    placeholder="Nhập tên nhóm..."
+                    className="flex-1 text-base font-medium text-slate-800 border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-shadow"
                   />
                   <div className="flex items-center gap-1">
                     <button
@@ -545,46 +563,101 @@ const MembersSidebar = ({
             </div>
 
             {showMembers && (
-              <section id="members-list" className="space-y-3 cursor-pointer">
-                {membersWithDetails.map(member => (
+              <section id="members-list" className="space-y-3 cursor-pointer" ref={dropdownRef}>
+                {membersWithDetails.map((member) => (
                   <div
                     key={member._id}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group"
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group relative"
                   >
                     <div className="flex items-center space-x-4 min-w-0">
                       <div className="relative">
-                        <Avatar
-                          userInfo={member}
-                          size="small"
-                        />
+                        <Avatar userInfo={member} size="small" />
                         <span
-                          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${member.isOnline ? 'bg-green-500' : 'bg-slate-400'}`}
+                          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                            member.isOnline ? 'bg-green-500' : 'bg-slate-400'
+                          }`}
                         />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center space-x-2">
                           <p className="font-medium truncate">
                             {member.fullName}
-                            {member._id === currentUserId && (
-                              <span className="text-xs text-slate-500 ml-1">(You)</span>
-                            )}
+                            {member._id === currentUserId && <span className="text-xs text-slate-500 ml-1">(You)</span>}
                           </p>
                         </div>
                         <div className="flex items-center space-x-2 text-xs text-slate-500">
                           <p>{getRoleLabel(member.role)}</p>
-                          <p>{ member.isOnline ? 'Online' : `Offline`}</p>
+                          <p>{member.isOnline ? 'Online' : 'Offline'}</p>
                         </div>
                       </div>
                     </div>
 
                     {member._id !== currentUserId && (
-                      <button
-                        type="button"
-                        className="p-2 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
-                        aria-label="Manage member"
-                      >
-                        <MoreVertical className="w-4 h-4 text-slate-500" />
-                      </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          className="p-2 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
+                          aria-label="Manage member"
+                          onClick={() => toggleDropdown(member._id)}
+                        >
+                          <MoreVertical className="w-4 h-4 text-slate-500" />
+                        </button>
+
+                        {dropdownStates === member._id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
+                            <ul className="py-1">
+                              <li
+                                className="px-4 py-2 hover:bg-slate-100 cursor-pointer flex items-center space-x-2"
+                                onClick={() => {
+                                  console.log(`Xem hồ sơ của ${member.fullName}`)
+                                  toggleDropdown(member._id)
+                                }}
+                              >
+                                <User className="w-4 h-4 text-slate-600" />
+                                <span>View profile</span>
+                              </li>
+                              {isOwner && member.role !== 'owner' && (
+                                <li
+                                  className="px-4 py-2 hover:bg-slate-100 cursor-pointer flex items-center space-x-2"
+                                  onClick={() => {
+                                    onUpdateMemberRole(
+                                      selectedConversation._id,
+                                      member._id,
+                                      member.role === 'admin' ? 'member' : 'admin'
+                                    )
+                                    toggleDropdown(member._id)
+                                  }}
+                                >
+                                  {member.role === 'admin' ? (
+                                    <>
+                                      <Shield className="w-4 h-4 text-slate-600" />
+                                      <span>Remove admin rights</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Shield className="w-4 h-4 text-slate-600" />
+                                      <span>Add admin rights</span>
+                                    </>
+                                  )}
+                                </li>
+                              )}
+                              {(isOwner || isAdmin) && member.role !== 'owner' && 
+                                (
+                                  <li
+                                    className="px-4 py-2 hover:bg-slate-100 cursor-pointer flex items-center space-x-2 text-red-600"
+                                    onClick={() => {
+                                      console.log(`Delete ${member.fullName} from group`)
+                                      toggleDropdown(member._id)
+                                    }}
+                                  >
+                                    <Trash className="w-4 h-4" />
+                                    <span>Delete from group</span>
+                                  </li>
+                                )}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -598,7 +671,9 @@ const MembersSidebar = ({
                 onClick={() => setShowMedia(!showMedia)}
               >
                 <span>Photos & Videos</span>
-                <ChevronDown className={`w-4 h-4 text-slate-600 font-semibold transition-transform ${showMedia ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 text-slate-600 font-semibold transition-transform ${showMedia ? 'rotate-180' : ''}`}
+                />
               </button>
             </div>
 
@@ -606,7 +681,7 @@ const MembersSidebar = ({
               <>
                 <section className="grid grid-cols-4 gap-2 py-2 px-2">
                   {mediaItems.length > 0 ? (
-                    mediaItems.slice(0, 8).map(item => (
+                    mediaItems.slice(0, 8).map((item) => (
                       <div
                         key={item._id}
                         className="flex flex-col items-center group cursor-pointer"
@@ -656,7 +731,9 @@ const MembersSidebar = ({
                 onClick={() => setShowFiles(!showFiles)}
               >
                 <span>Files</span>
-                <ChevronDown className={`w-4 h-4 text-slate-600 font-semibold transition-transform ${showFiles ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 text-slate-600 font-semibold transition-transform ${showFiles ? 'rotate-180' : ''}`}
+                />
               </button>
             </div>
 
@@ -664,11 +741,12 @@ const MembersSidebar = ({
               <>
                 <section className="space-y-2">
                   {fileItems.length > 0 ? (
-                    fileItems.slice(0, 3).map(item => (
-                      <div key={item._id} className="flex items-center space-x-3 hover:bg-slate-100 rounded-md py-2 px-2 cursor-pointer">
-                        <div className="w-8 h-8 flex items-center justify-center">
-                          {getFileIcon(item)}
-                        </div>
+                    fileItems.slice(0, 3).map((item) => (
+                      <div
+                        key={item._id}
+                        className="flex items-center space-x-3 hover:bg-slate-100 rounded-md py-2 px-2 cursor-pointer"
+                      >
+                        <div className="w-8 h-8 flex items-center justify-center">{getFileIcon(item)}</div>
                         <div className="flex-1 min-w-0">
                           <a
                             href={item.url || '#'}
@@ -716,7 +794,7 @@ const MembersSidebar = ({
               className="w-full mb-4 cursor-pointer flex items-center justify-center space-x-2 py-2 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 shadow-sm transition-colors"
             >
               <Trash className="w-5 h-5" />
-              <span>Clear chat history</span>
+              <span>Delete chat history</span>
             </button>
             {isOwner && (
               <button
@@ -731,7 +809,7 @@ const MembersSidebar = ({
             <button
               type="button"
               className="w-full cursor-pointer flex items-center justify-center space-x-2 py-2 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium text-red-600 shadow-sm transition-colors"
-              aria-label="Leave Group"
+              aria-label="Rời nhóm"
               onClick={() => onLeaveConversation(selectedConversation._id)}
             >
               <LogOut className="w-5 h-5" />
@@ -741,10 +819,7 @@ const MembersSidebar = ({
         </>
       )}
       {previewItem && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
-          onClick={() => setPreviewItem(null)}
-        >
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" onClick={() => setPreviewItem(null)}>
           {previewItem.type === 'video' ? (
             <video
               src={previewItem.url}

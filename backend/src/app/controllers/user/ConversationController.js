@@ -313,7 +313,7 @@ class ConversationController {
         }
     }
 
-    // [PATCH] /api/conversations/:conversationId/leave
+    // [DELETE] /api/conversations/:conversationId/leave
     async leaveConversation(req, res) {
         try {
             const conversation = req.conversation
@@ -366,6 +366,61 @@ class ConversationController {
             res.status(200).json({ message: 'Conversation deleted successfully.' })
         } catch (error) {
             console.error('Error deleting conversation:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [POST] /api/conversations/:conversationId/member
+    async addMemberToConversation(req, res) {
+        try {
+            const conversation = req.conversation
+            const userId = req.body.userId
+
+            if (!userId) {
+                return res.status(400).json({ message: 'User ID is required.' })
+            }
+
+            const isMember = conversation.members.find(member => member.userId.toString() === userId)
+            if (isMember) {
+                return res.status(400).json({ message: 'User is already a member of this conversation.' })
+            }
+
+            conversation.members.push({ userId, role: 'member' })
+            await conversation.save()
+
+            res.status(200).json({ message: 'User added to conversation successfully.' })
+        } catch (error) {
+            console.error('Error adding user to conversation:', error)
+            res.status(500).json({ message: 'Internal server error' })
+        }
+    }
+
+    // [PATCH] /api/conversations/:conversationId/member/:memberId/role
+    async updateMemberRole(req, res) {
+        try {
+            const conversation = req.conversation
+            const memberId = req.params.memberId
+            const newRole = req.body.role
+
+            if (!newRole) {
+                return res.status(400).json({ message: 'New role is required.' })
+            }
+
+            if(newRole === 'owner'){
+                return res.status(403).json({ message: 'Cannot assign owner role.' })
+            }
+
+            const member = conversation.members.find(member => member.userId.toString() === memberId)
+            if (!member) {
+                return res.status(404).json({ message: 'Member not found.' })
+            }
+
+            member.role = newRole
+            await conversation.save()
+
+            res.status(200).json({ message: 'Member role updated successfully.' })
+        } catch (error) {
+            console.error('Error updating member role:', error)
             res.status(500).json({ message: 'Internal server error' })
         }
     }

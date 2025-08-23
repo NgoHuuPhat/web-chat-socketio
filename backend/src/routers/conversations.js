@@ -21,8 +21,9 @@ router.patch('/:conversationId/avatar',
     uploadCloudinary, 
     conversationController.updateConversationAvatar
 )
-router.patch('/:conversationId/leave', checkIsGroup, conversationController.leaveConversation)
+router.delete('/:conversationId/leave', checkIsGroup, conversationController.leaveConversation)
 router.delete('/:conversationId/groups', checkIsGroup, conversationController.deleteConversation)
+router.patch('/:conversationId/member/:memberId/role', checkIsGroup, conversationController.updateMemberRole)
 // router.delete('/:conversationId/users/:userId', conversationController.deleteUserFromConversation)
 router.get('/', conversationController.getAllConversations)
 

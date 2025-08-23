@@ -73,4 +73,8 @@ module.exports = (io, socket) => {
             })
         }
     })
+
+    socket.on('update_member_role', async ({ conversationId, memberId, newRole }) => {
+        socket.to(conversationId).emit('update_member_role', { conversationId, memberId, newRole })
+    })
 }

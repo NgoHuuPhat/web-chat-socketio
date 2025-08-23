@@ -213,6 +213,34 @@ const Chat = () => {
       }
     }
 
+    const handleSocketUpdateMemberRole = ({conversationId, memberId, newRole}) => {
+      setSelectedConversation(prev => {
+        if (prev._id === conversationId) {
+          return {
+            ...prev,
+            members: prev.members.map(member =>
+              member.userId._id === memberId ? { ...member, role: newRole } : member
+            ),
+          }
+        }
+        return prev
+      })
+
+      setConversations(prevConversations => {
+        return prevConversations.map(conversation => {
+          if (conversation._id === conversationId) {
+            return {
+              ...conversation,
+              members: conversation.members.map(member =>
+                member.userId._id === memberId ? { ...member, role: newRole } : member
+              ),
+            }
+          }
+          return conversation
+        })
+      })
+    }
+
     socket.on('receive_message', handleReceiveMessage)
     socket.on('new_message_notification', handleNewMessageNotification)
     socket.on('message_deleted', handleDeleteMessage)
@@ -220,6 +248,7 @@ const Chat = () => {
     socket.on('message_unpinned', handleSocketUnpinMessage)
     socket.on('update_group_name', handleUpdateGroupName)
     socket.on('update_group_avatar', handleUpdateGroupAvatar)
+    socket.on('update_member_role', handleSocketUpdateMemberRole)
 
     return () => {
       socket.off('receive_message', handleReceiveMessage)
@@ -229,6 +258,7 @@ const Chat = () => {
       socket.off('message_unpinned', handleSocketUnpinMessage)
       socket.off('update_group_name', handleUpdateGroupName)
       socket.off('update_group_avatar', handleUpdateGroupAvatar)
+      socket.off('update_member_role', handleSocketUpdateMemberRole)
     }
   }, [socket, selectedConversation, user.id])
 
@@ -347,7 +377,7 @@ const Chat = () => {
   const handleLeaveConversation = async (conversationId) => {
     try {
       const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/leave`, {
-        method: 'PATCH',
+        method: 'DELETE',
         credentials: 'include',
       })
 
@@ -990,6 +1020,56 @@ const Chat = () => {
   const handleToggleMembersSidebar = () => {
     setShowMembersSidebar(!showMembersSidebar)
   }
+  
+  const handleUpdateMemberRole = async (conversationId, memberId, newRole) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/member/${memberId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ role: newRole }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setSelectedConversation(prev => {
+          if (prev._id === conversationId) {
+            return {
+              ...prev,
+              members: prev.members.map(member =>
+                member.userId._id === memberId ? { ...member, role: newRole } : member
+              ),
+            }
+          }
+          return prev
+        })
+
+        setConversations(prevConversations => {
+          return prevConversations.map(conversation => {
+            if (conversation._id === conversationId) {
+              return {
+                ...conversation,
+                members: conversation.members.map(member =>
+                  member.userId._id === memberId ? { ...member, role: newRole } : member
+                ),
+              }
+            }
+            return conversation
+          })
+        })
+
+        socket.emit('update_member_role', { conversationId, memberId, newRole })
+        toast.success(data.message)
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      console.error('Lỗi khi cập nhật vai trò:', error)
+      toast.error('Lỗi khi cập nhật vai trò')
+    }
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-100 to-purple-50">
@@ -1028,6 +1108,7 @@ const Chat = () => {
             onUpdateGroupAvatar={handleUpdateGroupAvatar}
             onLeaveConversation={handleLeaveConversation}
             onDeleteConversation={handleDeleteConversation}
+            onUpdateMemberRole={handleUpdateMemberRole}
             uploading={uploadingAvatar}
           />
         )}
