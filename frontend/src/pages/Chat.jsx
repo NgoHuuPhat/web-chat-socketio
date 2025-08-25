@@ -213,7 +213,7 @@ const Chat = () => {
       }
     }
 
-    const handleSocketUpdateMemberRole = ({conversationId, memberId, newRole}) => {
+    const handleUpdateMemberRole = ({ conversationId, memberId, newRole }) => {
       setSelectedConversation(prev => {
         if (prev._id === conversationId) {
           return {
@@ -241,6 +241,55 @@ const Chat = () => {
       })
     }
 
+    const handleAddMembers = ({ conversationId, newMembers }) => {
+      console.log('Adding members:', newMembers)
+      setSelectedConversation(prev => {
+        if (prev._id === conversationId) {
+          return {
+            ...prev,
+            members: [...prev.members, ...newMembers],
+          }
+        }
+        return prev
+      })
+
+      setConversations(prevConversations => {
+        return prevConversations.map(conversation => {
+          if (conversation._id === conversationId) {
+            return {
+              ...conversation,
+              members: [...conversation.members, ...newMembers],
+            }
+          }
+          return conversation
+        })
+      })
+    }
+
+    const handleRemoveMember = ({ conversationId, memberId }) => {
+      setSelectedConversation(prev => {
+        if (prev._id === conversationId) {
+          return {
+            ...prev,
+            members: prev.members.filter(member => member.userId._id !== memberId),
+          }
+        }
+        return prev
+      })
+
+      setConversations(prevConversations => {
+        return prevConversations.map(conversation => {
+          if (conversation._id === conversationId) {
+            return {
+              ...conversation,
+              members: conversation.members.filter(member => member.userId._id !== memberId),
+            }
+          }
+          return conversation
+        })
+      })
+    }
+
     socket.on('receive_message', handleReceiveMessage)
     socket.on('new_message_notification', handleNewMessageNotification)
     socket.on('message_deleted', handleDeleteMessage)
@@ -248,7 +297,9 @@ const Chat = () => {
     socket.on('message_unpinned', handleSocketUnpinMessage)
     socket.on('update_group_name', handleUpdateGroupName)
     socket.on('update_group_avatar', handleUpdateGroupAvatar)
-    socket.on('update_member_role', handleSocketUpdateMemberRole)
+    socket.on('update_member_role', handleUpdateMemberRole)
+    socket.on('add_members', handleAddMembers)
+    socket.on('remove_member', handleRemoveMember)
 
     return () => {
       socket.off('receive_message', handleReceiveMessage)
@@ -258,7 +309,9 @@ const Chat = () => {
       socket.off('message_unpinned', handleSocketUnpinMessage)
       socket.off('update_group_name', handleUpdateGroupName)
       socket.off('update_group_avatar', handleUpdateGroupAvatar)
-      socket.off('update_member_role', handleSocketUpdateMemberRole)
+      socket.on('update_member_role', handleUpdateMemberRole)
+      socket.off('add_members', handleAddMembers)
+      socket.off('remove_member', handleRemoveMember)
     }
   }, [socket, selectedConversation, user.id])
 
@@ -444,6 +497,96 @@ const Chat = () => {
     } finally {
       setShowDeleteConfirm(false)
       setConversationToDelete(null)
+    }
+  }
+
+  const handleAddMembers = async (conversationId, userIds) => {
+    if (!conversationId || !userIds || userIds.length === 0) {
+      toast.error('Please select at least one user to add')
+      return
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/member`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ userIds }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        const newMembers = data.newUsers || []
+        setSelectedConversation(prev => {
+          if (prev._id === conversationId) {
+            return {
+              ...prev,
+              members: [...prev.members, ...newMembers],
+            }
+          }
+          return prev
+        })
+
+        setConversations(prevConversations =>
+          prevConversations.map(conversation =>
+            conversation._id === conversationId
+              ? { ...conversation, members: [...conversation.members, ...newMembers] }
+              : conversation
+          )
+        )
+        console.log(newMembers)
+
+        socket.emit('add_members', { conversationId, newMembers })
+        toast.success(data.message || 'Members added successfully')
+      } else {
+        toast.error(data.message || 'Failed to add members')
+      }
+    } catch (error) {
+      console.error('Error adding members:', error)
+      toast.error('Error adding members')
+    }
+  }
+
+  const handleRemoveMember = async (conversationId, memberId) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/conversations/${conversationId}/member/${memberId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setSelectedConversation(prev => {
+          if (prev._id === conversationId) {
+            return {
+              ...prev,
+              members: prev.members.filter(member => member.userId._id !== memberId),
+            }
+          }
+          return prev
+        })
+
+        setConversations(prevConversations =>
+          prevConversations.map(conversation =>
+            conversation._id === conversationId
+              ? { ...conversation, members: conversation.members.filter(member => member.userId._id !== memberId) }
+              : conversation
+          )
+        )
+
+        socket.emit('remove_member', { conversationId, memberId })
+        toast.success(data.message || 'Member removed successfully')
+      } else {
+        toast.error(data.message || 'Failed to remove member')
+      }
+    } catch (error) {
+      console.error('Error removing member:', error)
+      toast.error('Error removing member')
     }
   }
 
@@ -1109,6 +1252,8 @@ const Chat = () => {
             onLeaveConversation={handleLeaveConversation}
             onDeleteConversation={handleDeleteConversation}
             onUpdateMemberRole={handleUpdateMemberRole}
+            onAddMembers={handleAddMembers}
+            onRemoveMember={handleRemoveMember}
             uploading={uploadingAvatar}
           />
         )}

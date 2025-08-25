@@ -329,7 +329,7 @@ const ChatWindow = ({
               )}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-lg">{displayName}</h3>
+              <h3 className="font-bold text-purple-900 text-lg">{displayName}</h3>
               {!isGroup && <p className="text-sm text-slate-500">{isOnline ? 'Online' : lastOnline ? `Online ${getTimeAgo(lastOnline)}` : ''}</p>}
             </div>
           </div>

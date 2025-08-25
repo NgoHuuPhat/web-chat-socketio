@@ -77,4 +77,34 @@ module.exports = (io, socket) => {
     socket.on('update_member_role', async ({ conversationId, memberId, newRole }) => {
         socket.to(conversationId).emit('update_member_role', { conversationId, memberId, newRole })
     })
+
+    socket.on('add_members', async ({ conversationId, newMembers }) => {
+        const conversation = await Conversation.findById(conversationId)
+        const senderId = socket.user.id.toString()
+        
+        socket.to(conversationId).emit('add_members', { conversationId, newMembers })
+        if (conversation) {
+            conversation.members.forEach(member => {
+                const memberId = member.userId.toString()
+                if (memberId !== senderId) {
+                    socket.to(memberId).emit('add_members', { conversationId, newMembers })
+                }
+            })
+        }
+    })
+    
+    socket.on('remove_member', async ({ conversationId, memberId }) => {
+        const conversation = await Conversation.findById(conversationId)
+        const senderId = socket.user.id.toString()
+        
+        socket.to(conversationId).emit('remove_member', { conversationId, memberId })
+        if (conversation) {
+            conversation.members.forEach(member => {
+                const memberIds = member.userId.toString()
+                if (memberIds !== senderId) {
+                    socket.to(memberIds).emit('remove_member', { conversationId, memberId })
+                }
+            })
+        }
+    })
 }

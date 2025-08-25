@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Search, LogOut, Play, CircleX, Check, X, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft, PenLine, Camera, LoaderCircle } from 'lucide-react'
+import { Bell, Search, LogOut, Play, CircleX, Check, X, File, FileText, Image, FileSpreadsheet, Trash, Crown, Shield, User, MoreVertical, ChevronDown, ChevronLeft, PenLine, Camera, LoaderCircle, UserPlus } from 'lucide-react'
 import { formatTime } from '@/utils/formatTime'
 import Avatar from '@/components/Avatar'
 import GroupAvatar from '@/components/GroupAvatar'
@@ -15,6 +15,8 @@ const MembersSidebar = ({
   onLeaveConversation,
   onDeleteConversation,
   onUpdateMemberRole,
+  onAddMembers,
+  onRemoveMember,
   uploading,
 }) => {
   const [showMembers, setShowMembers] = useState(false)
@@ -28,7 +30,11 @@ const MembersSidebar = ({
   const dropdownRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  console.log(selectedConversation)
+  // New states for add member modal
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false)
+  const [searchItemModal, setSearchItemModal] = useState('')
+  const [modalUsers, setModalUsers] = useState([])
+  const [selectedUsers, setSelectedUsers] = useState([])
 
   // Func to toggle dropdown for a specific member
   const toggleDropdown = (memberId) => {
@@ -48,6 +54,53 @@ const MembersSidebar = ({
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  // Handle filtering users inside add member modal
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      const fetchSearchResults = async () => {
+        try {
+          const query = searchItemModal.trim()
+          let fetchedUsers = []
+          if (!query) {
+            // If no query, perhaps load all users or an initial list; here assuming fetch all if empty
+            const res = await fetch(`http://localhost:3000/api/users/search?q=`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            })
+            fetchedUsers = await res.json()
+          } else {
+            const res = await fetch(`http://localhost:3000/api/users/search?q=${encodeURIComponent(query)}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            })
+            fetchedUsers = await res.json()
+          }
+
+          if (Array.isArray(fetchedUsers)) {
+            // Exclude current members
+            const currentMemberIds = selectedConversation.members.map(m => m.userId._id)
+            const filtered = fetchedUsers.filter(u => !currentMemberIds.includes(u._id) && u._id !== currentUserId)
+            setModalUsers(filtered)
+          } else {
+            console.error('Invalid users data')
+          }
+        } catch (error) {
+          console.error('Error fetching users:', error)
+        }
+      }
+
+      fetchSearchResults()
+    }, 100)
+
+    return () => clearTimeout(delay)
+  }, [searchItemModal, selectedConversation.members, currentUserId])
 
   const getFileIcon = (file) => {
     const extension = file.originalName?.split('.').pop()?.toLowerCase()
@@ -126,6 +179,22 @@ const MembersSidebar = ({
       onUpdateGroupAvatar(selectedConversation._id, file)
     }
     fileInputRef.current.value = null
+  }
+
+  const handleAddMembers = async (e) => {
+    e.preventDefault()
+    if (selectedUsers.length === 0) return
+
+    const userIds = selectedUsers.map(u => u._id)
+    await onAddMembers(selectedConversation._id, userIds)
+    setShowAddMemberModal(false)
+    setSelectedUsers([])
+    setSearchItemModal('')
+  }
+
+  const handleRemoveMember = async (memberId) => {
+    await onRemoveMember(selectedConversation._id, memberId)
+    setDropdownStates(null)
   }
 
   const renderAllMediaView = () => (
@@ -246,7 +315,7 @@ const MembersSidebar = ({
                   </div>
                 )}
               </div>
-              <h2 className="mt-4 mb-1 text-xl font-semibold text-slate-900">{userDetails.fullName || userDetails.username || 'Unknown'}</h2>
+              <h2 className="mt-4 mb-1 text-xl font-bold text-purple-900">{userDetails.fullName || userDetails.username || 'Unknown'}</h2>
               <p className="text-sm text-slate-500">{userDetails.isOnline ? 'Online' : 'Offline'}</p>
             </div>
 
@@ -289,7 +358,7 @@ const MembersSidebar = ({
               <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  className="flex justify-between py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-slate-100 transition-colors font-semibold"
+                  className="flex justify-between text-purple-900 py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-purple-50 transition-colors font-semibold"
                   onClick={() => setShowMedia(!showMedia)}
                 >
                   <span>Photos & Videos</span>
@@ -347,7 +416,7 @@ const MembersSidebar = ({
               <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  className="flex justify-between py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-slate-100 transition-colors font-semibold mt-2"
+                  className="flex justify-between text-purple-900 py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-purple-50 transition-colors font-semibold mt-2"
                   onClick={() => setShowFiles(!showFiles)}
                 >
                   <span>Files</span>
@@ -396,7 +465,7 @@ const MembersSidebar = ({
 
               <button
                 type="button"
-                className="flex justify-between cursor-pointer items-center rounded-lg hover:bg-slate-100 transition-colors font-semibold py-2 px-2 mt-2"
+                className="flex justify-between text-purple-900 cursor-pointer items-center rounded-lg hover:bg-purple-50 transition-colors font-semibold py-2 px-2 mt-2"
               >
                 <span>Privacy & Support</span>
                 <ChevronDown className="w-4 h-4 text-slate-600 font-semibold" />
@@ -534,7 +603,7 @@ const MembersSidebar = ({
                 </div>
               ) : (
                 <>
-                  <h2 className="font-semibold text-xl text-center text-slate-900">{selectedConversation.groupName}</h2>
+                  <h2 className="font-bold text-xl text-center text-purple-900">{selectedConversation.groupName}</h2>
                   <button
                     type="button"
                     onClick={() => setIsEditingName(true)}
@@ -552,10 +621,10 @@ const MembersSidebar = ({
             <div className="flex items-center justify-between">
               <button
                 type="button"
-                className="flex justify-between py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-slate-100 transition-colors font-semibold"
+                className="flex text-purple-900 justify-between py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-purple-50 transition-colors font-semibold"
                 onClick={() => setShowMembers(!showMembers)}
               >
-                <span>Members</span>
+                <span>Members ({membersWithDetails.length})</span>
                 <ChevronDown
                   className={`w-4 h-4 text-slate-600 font-semibold transition-transform ${showMembers ? 'rotate-180' : ''}`}
                 />
@@ -563,51 +632,105 @@ const MembersSidebar = ({
             </div>
 
             {showMembers && (
-              <section id="members-list" className="space-y-3 cursor-pointer" ref={dropdownRef}>
-                {membersWithDetails.map((member) => (
-                  <div
-                    key={member._id}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-100 transition-colors group relative"
-                  >
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <div className="relative">
-                        <Avatar userInfo={member} size="small" />
-                        <span
-                          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                            member.isOnline ? 'bg-green-500' : 'bg-slate-400'
-                          }`}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-2">
-                          <p className="font-medium truncate">
-                            {member.fullName}
-                            {member._id === currentUserId && <span className="text-xs text-slate-500 ml-1">(You)</span>}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2 text-xs text-slate-500">
-                          <p>{getRoleLabel(member.role)}</p>
-                          <p>{member.isOnline ? 'Online' : 'Offline'}</p>
-                        </div>
-                      </div>
-                    </div>
+              <div className="w-full">
+                {/* Add Member Button */}
+                {(isOwner || isAdmin) && (
+                  <div className="flex justify-center my-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMemberModal(true)}
+                      className="inline-flex items-center cursor-pointer gap-1.5 px-3 py-1.5
+                                rounded-md border border-purple-300 text-sm text-purple-600 font-medium
+                                hover:bg-purple-50
+                                transition-colors duration-200"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Add Member</span>
+                    </button>
+                  </div>
+                )}
 
-                    {member._id !== currentUserId && (
-                      <div className="relative">
-                        <button
-                          type="button"
-                          className="p-2 opacity-0 group-hover:opacity-100 hover:bg-slate-200 rounded-full transition-colors cursor-pointer"
-                          aria-label="Manage member"
-                          onClick={() => toggleDropdown(member._id)}
-                        >
-                          <MoreVertical className="w-4 h-4 text-slate-500" />
-                        </button>
+                {/* Members List */}
+                <section id="members-list" className="space-y-2" ref={dropdownRef}>
+                  {membersWithDetails.map((member) => (
+                    <div
+                      key={member._id}
+                      className="flex items-center cursor-pointer justify-between p-4 rounded-lg hover:bg-slate-50 transition-colors duration-200 group relative"
+                    >
+                      <div className="flex items-center space-x-4 min-w-0">
+                        {/* Avatar with Online Status */}
+                        <div className="relative flex-shrink-0">
+                          <Avatar userInfo={member} size="small" />
+                          <div
+                            className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${
+                              member.isOnline 
+                                ? 'bg-green-500' 
+                                : 'bg-slate-400'
+                            }`}
+                          />
+                        </div>
 
-                        {dropdownStates === member._id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
-                            <ul className="py-1">
-                              <li
-                                className="px-4 py-2 hover:bg-slate-100 cursor-pointer flex items-center space-x-2"
+                        {/* Member Info */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h4 className="font-semibold text-slate-800 truncate">
+                              {member.fullName}
+                              {member._id === currentUserId && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                                  You
+                                </span>
+                              )}
+                            </h4>
+                          </div>
+                          <div className="flex items-center space-x-3 text-sm">
+                            {/* Role Badge */}
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              member.role === 'owner' 
+                                ? 'bg-amber-100 text-amber-800' 
+                                : member.role === 'admin'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {getRoleLabel(member.role)}
+                            </span>
+                            
+                            {/* Online Status */}
+                            <div className="flex items-center gap-1.5">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  member.isOnline ? 'bg-green-400' : 'bg-slate-300'
+                                }`}
+                              />
+                              <span
+                                className={`text-xs font-medium leading-none ${
+                                  member.isOnline ? 'text-green-600' : 'text-slate-500'
+                                }`}
+                              >
+                                {member.isOnline ? 'Online' : 'Offline'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions Menu */}
+                      {member._id !== currentUserId && (
+                        <div className="relative flex-shrink-0">
+                          <button
+                            type="button"
+                            className="p-2 opacity-0 group-hover:opacity-100 hover:bg-slate-100 rounded-lg transition-colors duration-200 cursor-pointer"
+                            aria-label="Manage member"
+                            onClick={() => toggleDropdown(member._id)}
+                          >
+                            <MoreVertical className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                          </button>
+
+                          {/* Dropdown Menu */}
+                          {dropdownStates === member._id && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg z-20 py-1">
+                              {/* View Profile */}
+                              <button
+                                className="w-full px-4 py-2 hover:bg-slate-50 cursor-pointer flex items-center space-x-2 text-left"
                                 onClick={() => {
                                   console.log(`Xem hồ sơ của ${member.fullName}`)
                                   toggleDropdown(member._id)
@@ -615,10 +738,12 @@ const MembersSidebar = ({
                               >
                                 <User className="w-4 h-4 text-slate-600" />
                                 <span>View profile</span>
-                              </li>
+                              </button>
+
+                              {/* Admin Rights Toggle */}
                               {isOwner && member.role !== 'owner' && (
-                                <li
-                                  className="px-4 py-2 hover:bg-slate-100 cursor-pointer flex items-center space-x-2"
+                                <button
+                                  className="w-full px-4 py-2 hover:bg-slate-50 cursor-pointer flex items-center space-x-2 text-left"
                                   onClick={() => {
                                     onUpdateMemberRole(
                                       selectedConversation._id,
@@ -628,46 +753,42 @@ const MembersSidebar = ({
                                     toggleDropdown(member._id)
                                   }}
                                 >
-                                  {member.role === 'admin' ? (
-                                    <>
-                                      <Shield className="w-4 h-4 text-slate-600" />
-                                      <span>Remove admin rights</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Shield className="w-4 h-4 text-slate-600" />
-                                      <span>Add admin rights</span>
-                                    </>
-                                  )}
-                                </li>
+                                  <Shield className="w-4 h-4 text-slate-600" />
+                                  <span>
+                                    {member.role === 'admin' ? 'Remove admin rights' : 'Make admin'}
+                                  </span>
+                                </button>
                               )}
-                              {(isOwner || isAdmin) && member.role !== 'owner' && 
-                                (
-                                  <li
-                                    className="px-4 py-2 hover:bg-slate-100 cursor-pointer flex items-center space-x-2 text-red-600"
+
+                              {/* Remove Member */}
+                              {(isOwner || isAdmin) && member.role !== 'owner' && (
+                                <>
+                                  <div className="border-t border-slate-100 my-1" />
+                                  <button
+                                    className="w-full px-4 py-2 hover:bg-red-50 cursor-pointer flex items-center space-x-2 text-left text-red-600"
                                     onClick={() => {
-                                      console.log(`Delete ${member.fullName} from group`)
-                                      toggleDropdown(member._id)
+                                      handleRemoveMember(member._id)
                                     }}
                                   >
                                     <Trash className="w-4 h-4" />
-                                    <span>Delete from group</span>
-                                  </li>
-                                )}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </section>
+                                    <span>Remove from group</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </section>
+              </div>
             )}
 
             <div className="flex items-center justify-between">
               <button
                 type="button"
-                className="flex justify-between py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-slate-100 transition-colors font-semibold mt-2"
+                className="flex justify-between text-purple-900 py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-purple-50 transition-colors font-semibold mt-2"
                 onClick={() => setShowMedia(!showMedia)}
               >
                 <span>Photos & Videos</span>
@@ -727,7 +848,7 @@ const MembersSidebar = ({
             <div className="flex items-center justify-between">
               <button
                 type="button"
-                className="flex justify-between py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-slate-100 transition-colors font-semibold mt-2"
+                className="flex justify-between text-purple-900 py-2 px-2 cursor-pointer items-center w-full rounded-lg hover:bg-purple-50 transition-colors font-semibold mt-2"
                 onClick={() => setShowFiles(!showFiles)}
               >
                 <span>Files</span>
@@ -781,7 +902,7 @@ const MembersSidebar = ({
 
             <button
               type="button"
-              className="flex justify-between cursor-pointer items-center rounded-lg hover:bg-slate-100 transition-colors font-semibold py-2 px-2 mt-2"
+              className="flex justify-between text-purple-900 cursor-pointer items-center rounded-lg hover:bg-purple-50 transition-colors font-semibold py-2 px-2 mt-2"
             >
               <span>Privacy & Support</span>
               <ChevronDown className="w-4 h-4 text-slate-600 font-semibold" />
@@ -834,6 +955,148 @@ const MembersSidebar = ({
               className="max-w-[90vw] max-h-[90vh] rounded-lg shadow-xl object-contain"
             />
           )}
+        </div>
+      )}
+
+      {/* Modal add members */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[105vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-slate-900 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white">Add Members</h3>
+                <button
+                  onClick={() => {
+                    setShowAddMemberModal(false)
+                    setSelectedUsers([])
+                    setSearchItemModal('')
+                  }}
+                  className="text-white/80 hover:text-white hover:bg-white/10 rounded-full p-2 transition-all duration-200"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Form add members */}
+            <form onSubmit={handleAddMembers}>
+              {/* Search Section */}
+              <div className="px-6 pt-6 pb-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search members..."
+                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 transition-all duration-200 text-slate-700 placeholder-slate-400"
+                    value={searchItemModal}
+                    onChange={(e) => setSearchItemModal(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Users List */}
+              <div className="px-6 pb-6 max-h-80 overflow-y-auto">
+                {modalUsers.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm">No users found</p>
+                  </div>
+                ) : (
+                  <ul className="space-y-3">
+                    {modalUsers.map(user => {
+                      const isUserSelected = selectedUsers.some(selected => selected._id === user._id)
+                      return (
+                        <li
+                          key={user._id}
+                          className="group p-4 bg-slate-50 rounded-2xl hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 hover:shadow-md cursor-pointer transition-all duration-200 border border-transparent hover:border-purple-200"
+                          onClick={() => {
+                            if (isUserSelected) {
+                              setSelectedUsers(selectedUsers.filter(selected => selected._id !== user._id))
+                            } else {
+                              setSelectedUsers([...selectedUsers, user])
+                            }
+                          }}
+                        >
+                          <div className="flex items-center space-x-4">
+                            {/* Avatar */}
+                            <div className="relative">
+                              <Avatar
+                                userInfo={user}
+                                size="small"
+                                className="group-hover:scale-105 transition-transform duration-200"
+                              />
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                            </div>
+
+                            {/* User Info */}
+                            <div className="flex-1">
+                              <span className="font-semibold text-slate-800 group-hover:text-purple-700 transition-colors duration-200">
+                                {user.fullName}
+                              </span>
+                              <p className="text-sm text-slate-500 mt-1">
+                                {isUserSelected ? 'Selected' : 'Click to select'}
+                              </p>
+                            </div>
+
+                            {/* Status Icon */}
+                            <div className={`transition-all duration-200 ${isUserSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                              {isUserSelected ? (
+                                <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              ) : (
+                                <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-slate-50 px-6 py-4 border-t border-slate-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-500">
+                    {selectedUsers.length} member{selectedUsers.length !== 1 ? 's' : ''} selected
+                  </span>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      className="px-6 py-2 cursor-pointer bg-slate-200 hover:bg-slate-300 rounded-xl font-medium text-slate-700 transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                      onClick={() => {
+                        setShowAddMemberModal(false)
+                        setSelectedUsers([])
+                        setSearchItemModal('')
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={selectedUsers.length === 0}
+                      className="px-6 py-2 cursor-pointer bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-purple-200"
+                    >
+                      Add Members
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </aside>

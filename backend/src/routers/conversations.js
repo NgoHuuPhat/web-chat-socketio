@@ -4,6 +4,7 @@ const conversationController = require('../app/controllers/user/ConversationCont
 const { upload, handleMulterError} = require('../app/middlewares/multer')
 const uploadCloudinary = require('../app/middlewares/uploadCloudinary')
 const checkIsGroup = require('../app/middlewares/checkIsGroup')
+const groupRoleMiddleware = require('../app/middlewares/groupRoleMiddleware')
 
 router.get('/search', conversationController.searchConversations)
 router.post('/group', conversationController.createGroupConversation)
@@ -22,9 +23,10 @@ router.patch('/:conversationId/avatar',
     conversationController.updateConversationAvatar
 )
 router.delete('/:conversationId/leave', checkIsGroup, conversationController.leaveConversation)
-router.delete('/:conversationId/groups', checkIsGroup, conversationController.deleteConversation)
-router.patch('/:conversationId/member/:memberId/role', checkIsGroup, conversationController.updateMemberRole)
-// router.delete('/:conversationId/users/:userId', conversationController.deleteUserFromConversation)
+router.delete('/:conversationId/groups', checkIsGroup, groupRoleMiddleware(['owner']), conversationController.deleteConversation)
+router.patch('/:conversationId/member/:memberId/role', checkIsGroup, groupRoleMiddleware(['owner']), conversationController.updateMemberRole)
+router.patch('/:conversationId/member',  checkIsGroup, groupRoleMiddleware(['owner', 'admin']), conversationController.addMemberToConversation)
+router.delete('/:conversationId/member/:memberId', checkIsGroup, groupRoleMiddleware(['owner', 'admin']), conversationController.deleteUserFromConversation)
 router.get('/', conversationController.getAllConversations)
 
 module.exports = router
