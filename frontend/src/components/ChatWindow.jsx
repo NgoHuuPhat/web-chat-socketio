@@ -40,6 +40,7 @@ const ChatWindow = ({
   const messagesMenuRef = useRef(null)
   const pinnedMessagesRef = useRef(null)
   const messageInputRef = useRef(null)
+  const messageShowRef = useRef({}) 
 
   // Refs for click outside detection
   useClickOutside(emojiPickerRef, () => setShowEmojiPicker(false), showEmojiPicker)
@@ -84,6 +85,15 @@ const ChatWindow = ({
     event.stopPropagation()
     setActiveMessageMenu(activeMessageMenu === index ? null : index)
   }
+
+  const handleMessagePinClick = (msgId) => {
+  const messageElement = messageShowRef.current[msgId];
+  if (messageElement) {
+    messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    messageElement.classList.add('bg-purple-100', 'transition-all', 'duration-500', 'rounded-3xl')
+    setTimeout(() => messageElement.classList.remove('bg-purple-100'), 1000)
+  }
+};
 
   // Handle file selection
   const handleFileSelect = (event) => {
@@ -364,14 +374,7 @@ const ChatWindow = ({
             <div
               key={index}
               id={`pinned-message-${msg._id}`}
-              onClick={() => {
-                const el = document.getElementById(`message-${msg._id}`)
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  el.classList.add('bg-purple-100')
-                  setTimeout(() => el.classList.remove('bg-purple-100'), 1000)
-                }
-              }}
+              onClick={() => handleMessagePinClick(msg._id)}
               className="group bg-purple-50 px-3 py-2 rounded-md shadow-sm mb-1 last:mb-0 cursor-pointer hover:bg-purple-100 transition flex justify-between items-center"
             >
               <div className="flex items-center space-x-2">
@@ -463,7 +466,7 @@ const ChatWindow = ({
       {/* Message Area */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
         {messages.map((msg, i) => (
-          <div key={i} id={`message-${msg._id}`} className={`flex ${msg.sender === currentUserId ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+          <div key={i} id={`message-${msg._id}`} ref={el => messageShowRef.current[msg._id] = el} className={`flex ${msg.sender === currentUserId ? 'justify-end' : 'justify-start'} animate-fade-in`}>
             <div className="relative flex flex-col">
               <div className="relative max-w-md group">
                 <div className={`rounded-3xl shadow-md  
