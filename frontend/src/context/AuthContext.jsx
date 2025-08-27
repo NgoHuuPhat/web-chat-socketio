@@ -44,11 +44,26 @@ export const AuthProvider = ({ children }) => {
             return
         }
 
-        const newSocket = io('http://localhost:3000', {
+        let newSocket = io('http://localhost:3000', {
             transports: ['websocket'],
             withCredentials: true
         })
 
+        newSocket.on('connect_error', async (err) => {
+            if(err.message.includes('jwt expired')) {
+                const res = await fetch('http://localhost:3000/api/auth/refresh-token', {
+                    method: 'POST',
+                    credentials: 'include'
+                })
+
+                if(res.ok) {
+                    newSocket.connect()
+                } else {
+                    setUser(null)
+                }
+            }
+        })
+        
         setSocket(newSocket)
 
         return () => {
