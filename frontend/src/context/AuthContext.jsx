@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }) => {
         })
 
         newSocket.on('connect_error', async (err) => {
-            if(err.message.includes('jwt expired')) {
+            if(err.message === 'jwt expired') {
                 const res = await fetch('http://localhost:3000/api/auth/refresh-token', {
                     method: 'POST',
                     credentials: 'include'

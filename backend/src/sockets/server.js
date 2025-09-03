@@ -28,7 +28,9 @@ const setupSocket = (server) => {
             socket.user = user
             next()
         } catch (error) {
-            console.error('Error parsing cookie:', error)
+            if(error.name === 'TokenExpiredError') {
+                return next(new Error('jwt expired'))
+            }
             return next(new Error('Authentication error'))
         }
     })

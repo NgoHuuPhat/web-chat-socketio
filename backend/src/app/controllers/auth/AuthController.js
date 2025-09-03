@@ -116,8 +116,18 @@ class AuthController {
             )
 
             // Set cookies
-            res.cookie('accessToken', accessToken, { httpOnly: true })
-            res.cookie('refreshToken', refreshToken, { httpOnly: true })
+            res.cookie('accessToken', accessToken, { 
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 15 * 60 * 1000, 
+            })
+            res.cookie('refreshToken', refreshToken, { 
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000, 
+             })
 
             const role = await Role.findById(checkEmail.roleId).select('name')
 
@@ -264,7 +274,13 @@ class AuthController {
             const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, {
                 expiresIn: process.env.JWT_EXPIRE,
             })
-            res.cookie('resetToken', resetToken, { httpOnly: true })
+            res.cookie('resetToken', resetToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 15 * 60 * 1000,
+            })
+
 
             res.status(200).json({
                 message: 'OTP verified successfully! You can now reset your password.',
