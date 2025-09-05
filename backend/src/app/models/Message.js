@@ -34,7 +34,7 @@ const MessageSchema = new Schema(
         },
         status: {
             type: String,
-            enum: ['sent', 'received', 'seen'],
+            enum: ['sent', 'seen'],
             default: 'sent'
         },
         seenBy: [{

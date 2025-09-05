@@ -107,4 +107,8 @@ module.exports = (io, socket) => {
             })
         }
     })
+
+    socket.on('mark_message_as_seen', async ({ conversationId, messageId, userId}) => {
+        socket.to(conversationId).emit('message_marked_as_seen', { conversationId, messageId, userId })
+    })
 }

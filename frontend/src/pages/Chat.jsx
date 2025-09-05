@@ -49,6 +49,13 @@ const Chat = () => {
       }
       if (selectedConversation && selectedConversation._id === message.conversationId) {
         setMessages(prevMessages => [...prevMessages, formattedMessage])
+        markMessagesAsRead(selectedConversation._id)
+
+        socket.emit('mark_message_as_seen', {
+          conversationId: selectedConversation._id,
+          messageId: message._id,
+          userId: user.id,
+        })
       }
 
       if (formattedMessage.messageType === 'media' && formattedMessage.attachments.length > 0) {
@@ -290,6 +297,28 @@ const Chat = () => {
       })
     }
 
+    const handleMessageMarkedAsSeen = ({ conversationId, messageId, userId }) => {
+      if(selectedConversation._id !== conversationId) return
+
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg._id === messageId
+            ? {
+                ...msg,
+                status: 'seen',
+                seenBy: [
+                  ...(msg.seenBy || []),
+                  {
+                    userId: users.find((u) => u._id === userId) || { _id: userId, fullName: 'Unknown' },
+                    seenAt: new Date().toISOString(),
+                  },
+                ],
+              }
+            : msg
+        )
+      )
+    }
+
     socket.on('receive_message', handleReceiveMessage)
     socket.on('new_message_notification', handleNewMessageNotification)
     socket.on('message_deleted', handleDeleteMessage)
@@ -300,6 +329,8 @@ const Chat = () => {
     socket.on('update_member_role', handleUpdateMemberRole)
     socket.on('add_members', handleAddMembers)
     socket.on('remove_member', handleRemoveMember)
+    socket.on('message_marked_as_seen', handleMessageMarkedAsSeen)
+    
 
     return () => {
       socket.off('receive_message', handleReceiveMessage)
@@ -312,6 +343,7 @@ const Chat = () => {
       socket.on('update_member_role', handleUpdateMemberRole)
       socket.off('add_members', handleAddMembers)
       socket.off('remove_member', handleRemoveMember)
+      socket.off('message_marked_as_seen', handleMessageMarkedAsSeen)
     }
   }, [socket, selectedConversation, user.id])
 
@@ -776,6 +808,17 @@ const Chat = () => {
 
       if (conversation._id) {
         await markMessagesAsRead(conversation._id)
+
+        const unreadMessages = messagesData.filter(msg => 
+          msg.status !== 'seen' && !msg.seenBy.some(seen => seen.userId._id === user.id)
+        )
+        unreadMessages.forEach(msg => {
+          socket.emit('mark_message_as_seen', {
+            conversationId: conversation._id,
+            messageId: msg._id,
+            userId: user.id,
+          })
+        })
       }
     } catch (error) {
       console.error('Error loading conversation:', error)
