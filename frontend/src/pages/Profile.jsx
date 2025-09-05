@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { MapPin, User, Calendar, Edit2, Phone, Mail, LoaderCircle, Save, X } from 'lucide-react'
 import { toast } from 'react-toastify'
 import validator from 'validator'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { formatTime } from '@/utils/formatTime'
 import Avatar from '@/components/Avatar'
 import ActionButton from '@/components/ActionButton'
@@ -18,6 +18,7 @@ const Profile = () => {
   const [userInfo, setUserInfo] = useState({})
   const imageInputRef = useRef(null)
   const { setUser } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     try {
@@ -90,13 +91,15 @@ const Profile = () => {
         credentials: 'include',
       })
       const data = await res.json()
-
       if (!res.ok) {
         console.error('Failed to save changes:', data.message)  
         return toast.error(data.message || 'Failed to save changes')
       }
-
       setUserInfo(data.user)
+      
+      if(data.user.slug !== slug){
+        navigate(`/profile/${data.user.slug}`)
+      }
     } catch (error) {
       console.error('Error saving changes:', error)
     } finally {
