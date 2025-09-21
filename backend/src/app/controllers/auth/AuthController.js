@@ -260,9 +260,9 @@ class AuthController {
             const { email, otp } = req.body
 
             // Check result in ForgotPassword collection
-            const result = await ForgotPassword.findOne({ email, otp })
+            const result = await ForgotPassword.findOne({ email }).sort({ createdAt: -1 })
 
-            if (!result) {
+            if (!result || result.otp !== parseInt(otp)) {
                 return res.status(400).json({
                     message: 'OTP is invalid or expired. Please try again.',
                 })

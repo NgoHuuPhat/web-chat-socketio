@@ -12,6 +12,15 @@ const VerifyOTP = () => {
 
   const navigate = useNavigate()
 
+  useEffect(() => {
+    const savedEmail = sessionStorage.getItem('email')
+    
+    if(!savedEmail) {
+      navigate('/forgot-password')
+      return
+    }
+  }, [navigate])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)

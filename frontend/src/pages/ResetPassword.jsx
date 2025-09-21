@@ -19,6 +19,13 @@ const ResetPassword = () => {
 
   const navigate = useNavigate()
 
+  useEffect(() => {
+    const savedEmail = sessionStorage.getItem('email')
+    if (!savedEmail) {
+      navigate('/forgot-password')
+    }
+  }, [navigate])
+
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
   }
